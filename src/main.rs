@@ -20,7 +20,6 @@ pub fn init_logging() -> Result<()> {
     Ok(())
 }
 
-
 #[tokio::main]
 async fn main() -> Result<()> {
     init_logging()?;

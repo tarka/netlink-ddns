@@ -6,7 +6,7 @@ use std::{env, net::Ipv4Addr, sync::LazyLock};
 use anyhow::{bail, Result};
 use reqwest::{header::AUTHORIZATION, Client};
 use serde::de::DeserializeOwned;
-use tracing::error;
+use tracing::{error, warn};
 use types::{Error, Record};
 
 static CLIENT: LazyLock<Client> = LazyLock::new(Client::new);
@@ -14,10 +14,11 @@ static CLIENT: LazyLock<Client> = LazyLock::new(Client::new);
 static API_KEY: LazyLock<Option<String>> = LazyLock::new(|| env::var("GANDI_APIKEY").ok());
 static PAT_KEY: LazyLock<Option<String>> = LazyLock::new(|| env::var("GANDI_PATKEY").ok());
 
-const API_BASE: &'static str = "https://api.gandi.net/v5/livedns";
+const API_BASE: &str = "https://api.gandi.net/v5/livedns";
 
 async fn get<T>(url: &str) -> Result<T>
-where T: DeserializeOwned
+where
+    T: DeserializeOwned,
 {
     let auth = if let Some(key) = API_KEY.as_ref() {
         format!("Apikey {key}")
@@ -46,21 +47,25 @@ pub async fn get_records(domain: &str) -> Result<Vec<Record>> {
     Ok(recs)
 }
 
-pub async fn get_host_ipv4(domain: &str, host: &str) -> Result<Ipv4Addr> {
+pub async fn get_host_ipv4(domain: &str, host: &str) -> Result<Option<Ipv4Addr>> {
     //  https://api.gandi.net/v5/livedns/domains/{fqdn}/records/{rrset_name}/{rrset_type}
     let url = format!("{API_BASE}/domains/{domain}/records/{host}/A");
     let rec: Record = get(&url).await?;
 
-    // FIXME: Assumes single address (which probably makes sense for
-    // DDNS, but may cause issues with malformed zones.
-    if rec.rrset_values.len() != 1 {
-        let n = rec.rrset_values.len();
-        error!("Returned number of IPs is {}, should be 1", n);
-        bail!("Returned number of IPs is {}, should be 1", n);
-    }
-    let ip = rec.rrset_values[0].parse()?;
+    let nr = rec.rrset_values.len();
 
-    Ok(ip)
+    // FIXME: Assumes no or single address (which probably makes sense
+    // for DDNS, but may cause issues with malformed zones.
+    if nr > 1 {
+        error!("Returned number of IPs is {}, should be 1", nr);
+        bail!("Returned number of IPs is {}, should be 1", nr);
+    } else if nr == 0 {
+        warn!("No IP returned for {host}, continuing");
+        return Ok(None);
+    }
+
+    let ip = rec.rrset_values[0].parse()?;
+    Ok(Some(ip))
 }
 
 #[cfg(test)]
@@ -88,7 +93,8 @@ mod tests {
     #[traced_test]
     async fn test_fetch_ipv4() -> Result<()> {
         let ip = get_host_ipv4("haltcondition.net", "janus").await?;
-        assert_eq!(Ipv4Addr::new(192,168,42,1), ip);
+        assert!(ip.is_some());
+        assert_eq!(Ipv4Addr::new(192,168,42,1), ip.unwrap());
         Ok(())
     }
 
