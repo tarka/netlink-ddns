@@ -5,8 +5,7 @@ use std::{env, sync::LazyLock};
 
 use anyhow::{bail, Result};
 use reqwest::{header::AUTHORIZATION, Client};
-
-use crate::gandi::types::Record;
+use types::{Error, Record};
 
 static CLIENT: LazyLock<Client> = LazyLock::new(Client::new);
 
@@ -27,6 +26,10 @@ pub async fn get_records(fqdn: &str) -> Result<Vec<Record>> {
     let res = CLIENT.get(url)
         .header(AUTHORIZATION, auth)
         .send().await?;
+    if !res.status().is_success() {
+        let err: Error = res.json().await?;
+        bail!("Gandi lookup failed: {}", err.message);
+    }
     let recs = res.json().await?;
 
     Ok(recs)
@@ -39,7 +42,18 @@ mod tests {
 
     #[tokio::test]
     #[traced_test]
-    async fn test_fetch_records() {
-        let _recs = get_records("haltcondition.net").await.unwrap();
+    async fn test_fetch_records() -> Result<()> {
+        let recs = get_records("haltcondition.net").await?;
+        assert!(recs.len() > 0);
+        Ok(())
     }
+
+    #[tokio::test]
+    #[traced_test]
+    async fn test_fetch_records_error() -> Result<()> {
+        let result = get_records("not.a.real.domain.net").await;
+        assert!(result.is_err());
+        Ok(())
+    }
+
 }

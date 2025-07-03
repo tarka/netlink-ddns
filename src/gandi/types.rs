@@ -3,6 +3,20 @@ use serde::{Deserialize, Serialize};
 
 // See https://api.gandi.net/docs/livedns/
 
+// {
+//   "object": "HTTPNotFound",
+//   "cause": "Not Found",
+//   "code": 404,
+//   "message": "The resource could not be found."
+// }
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Error {
+    pub object: String,
+    pub cause: String,
+    pub code: u32,
+    pub message: String,
+}
+
 // [
 //   {
 //     "rrset_name": "@",
@@ -16,9 +30,9 @@ use serde::{Deserialize, Serialize};
 // ]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Record {
-    rrset_name: String,
-    rrset_type: String,
-    rrset_values: Vec<String>,
-    rrset_href: String,
-    rrset_ttl: Option<u32>,
+    pub rrset_name: String,
+    pub rrset_type: String,
+    pub rrset_values: Vec<String>,
+    pub rrset_href: String,
+    pub rrset_ttl: Option<u32>,
 }
