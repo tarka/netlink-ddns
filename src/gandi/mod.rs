@@ -151,6 +151,13 @@ mod tests {
         let nip = Ipv4Addr::new(next,next,next,next);
         set_host_ipv4("haltcondition.net", "test", &nip).await?;
 
+        let ip = get_host_ipv4("haltcondition.net", "test").await?;
+        if let Some(ip) = ip {
+            assert_eq!(nip, ip);
+        } else {
+            assert!(false, "No updated IP found");
+        }
+
         Ok(())
     }
 
