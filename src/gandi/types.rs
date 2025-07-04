@@ -36,3 +36,15 @@ pub struct Record {
     pub rrset_href: String,
     pub rrset_ttl: Option<u32>,
 }
+
+// {
+//   "rrset_values": [
+//     "www.example.org"
+//   ],
+//   "rrset_ttl": 320
+// }
+#[derive(Serialize, Deserialize, Debug)]
+pub struct RecordUpdate {
+    pub rrset_values: Vec<String>,
+    pub rrset_ttl: Option<u32>,
+}
