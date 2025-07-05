@@ -70,6 +70,23 @@ where
     Ok(())
 }
 
+async fn post<T>(url: &str, body: &T) -> Result<()>
+where
+    T: Serialize,
+{
+    let res = CLIENT.post(url)
+        .header(AUTHORIZATION, get_auth()?)
+        .json(body)
+        .send().await?;
+    if !res.status().is_success() {
+        let err: Error = res.json().await?;
+        error!("Gandi post failed: {}", err.message);
+        bail!("Gandi post failed: {}", err.message);
+    }
+
+    Ok(())
+}
+
 pub async fn get_records(domain: &str) -> Result<Vec<Record>> {
     let url = format!("{API_BASE}/domains/{domain}/records");
     let recs = get(&url).await?
