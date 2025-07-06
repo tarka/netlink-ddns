@@ -48,3 +48,40 @@ pub struct RecordUpdate {
     pub rrset_values: Vec<String>,
     pub rrset_ttl: Option<u32>,
 }
+
+// {
+//   "fqdn": "example.com",
+//   "duration": 5,
+//   "owner": {
+//     "city": "Paris",
+//     "given": "Alice",
+//     "family": "Doe",
+//     "zip": "75001",
+//     "country": "FR",
+//     "streetaddr": "5 rue neuve",
+//     "phone": "+33.123456789",
+//     "state": "FR-IDF",
+//     "type": "individual",
+//     "email": "alice@example.org"
+//   }
+// }
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Owner {
+    pub city: String,
+    pub given: String,
+    pub family: String,
+    pub zip: String,
+    pub country: String,
+    pub streetaddr: String,
+    pub phone: String,
+    pub state: String,
+    #[serde(rename = "type")] 
+    pub owner_type: String,
+    pub email: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct CreateDomain {
+    pub fqdn: String,
+    pub owner: Owner,
+}
