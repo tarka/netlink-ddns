@@ -4,7 +4,7 @@ use tracing::{error, info, warn};
 
 #[cfg(test)]
 mod tests {
-    use std::future;
+    use std::{future, net::IpAddr};
 
     use super::*;
     use rtnetlink::{new_connection, packet_route::{address::{AddressAttribute}, AddressFamily}};
@@ -22,9 +22,11 @@ mod tests {
             .execute();
 
         while let Some(link) = links.try_next().await? {
+            // Fetch link addresses
             let addrs = handle.address().get()
                 .set_link_index_filter(link.header.index)
                 .execute()
+                // Extract attributes
                 .try_filter_map(|a| future::ready(
                     if a.header.family == AddressFamily::Inet {
                         Ok(Some(a.attributes))
@@ -38,13 +40,16 @@ mod tests {
                 ))
                 .try_flatten()
                 .try_collect::<Vec<AddressAttribute>>().await?
+                // Extract relevant addresses
                 .into_iter()
                 .flat_map(|a| if let AddressAttribute::Address(addr) = a {
                     Some(addr)
                 } else {
                     None
-                });
+                })
+                .collect::<Vec<IpAddr>>();
 
+            println!("LEN = {}", addrs.len());
             for addr in addrs {
                 println!("Attr: {addr:#?}");
             }
