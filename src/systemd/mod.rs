@@ -4,12 +4,12 @@ use tracing::{error, info, warn};
 
 #[cfg(test)]
 mod tests {
-    use std::{any::Any, future};
+    use std::future;
 
     use super::*;
-    use rtnetlink::{new_connection, packet_route::{address::{AddressAttribute, AddressMessage}, AddressFamily}};
+    use rtnetlink::{new_connection, packet_route::{address::{AddressAttribute}, AddressFamily}};
     use tracing_test::traced_test;
-    use futures::{stream::{self, TryStreamExt}, FutureExt, StreamExt};
+    use futures::{stream::{self, TryStreamExt}};
 
     #[tokio::test]
     #[traced_test]
@@ -22,7 +22,7 @@ mod tests {
             .execute();
 
         while let Some(link) = links.try_next().await? {
-            let attrs = handle.address().get()
+            let addrs = handle.address().get()
                 .set_link_index_filter(link.header.index)
                 .execute()
                 .try_filter_map(|a| future::ready(
@@ -37,16 +37,16 @@ mod tests {
                         .map(|a| Ok::<AddressAttribute, rtnetlink::Error>(a))
                 ))
                 .try_flatten()
-                .try_collect::<Vec<AddressAttribute>>().await?;
+                .try_collect::<Vec<AddressAttribute>>().await?
+                .into_iter()
+                .flat_map(|a| if let AddressAttribute::Address(addr) = a {
+                    Some(addr)
+                } else {
+                    None
+                });
 
-//            println!("ATTR: {addrs:#?}");
-
-            //            while let attr = attrs {
-            for attr in attrs {
-//                println!("ADDR: {:#?}", attr.header.family);
-//                for a in addr.attributes {
-                    println!("Attr: {attr:#?}");
-//                }
+            for addr in addrs {
+                println!("Attr: {addr:#?}");
             }
         }
 
