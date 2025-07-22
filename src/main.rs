@@ -1,5 +1,6 @@
 
 mod gandi;
+mod systemd;
 
 use anyhow::Result;
 use tokio;
