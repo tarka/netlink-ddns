@@ -18,4 +18,5 @@ zbus = "5.9.0"
 zbus_systemd = { version = "0.25701.0", features = ["network1"] }
 
 [dev-dependencies]
+tokio = { version = "1.46.1", features = ["fs"] }
 tracing-test = "0.2.5"
