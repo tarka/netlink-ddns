@@ -1,20 +1,25 @@
 
 mod types;
 
-use std::{env, net::Ipv4Addr, sync::LazyLock};
+use std::{env, io::Read, net::Ipv4Addr, sync::{Arc, LazyLock}};
 
-use anyhow::{bail, Result};
-use reqwest::{header::AUTHORIZATION, Client, StatusCode};
+use anyhow::{bail, Context, Result};
+use futures_rustls::{pki_types::ServerName, rustls::{ClientConfig, RootCertStore}, TlsConnector};
+use http_body_util::{BodyExt, Empty};
+use hyper::{body::{Buf, Bytes}, client::conn::http1, header::{ACCEPT, AUTHORIZATION, HOST}, Method, Request, StatusCode};
 use serde::{de::DeserializeOwned, Serialize};
-use tracing::{error, warn};
+use smol::{net::TcpStream, Executor};
+use smol_hyper::rt::FuturesIo;
+use tracing::{error, info, warn};
 use types::{Error, Record, RecordUpdate};
 
-static CLIENT: LazyLock<Client> = LazyLock::new(Client::new);
+static EXECUTOR: LazyLock<Executor> = LazyLock::new(|| Executor::new());
 
 static API_KEY: LazyLock<Option<String>> = LazyLock::new(|| env::var("GANDI_APIKEY").ok());
 static PAT_KEY: LazyLock<Option<String>> = LazyLock::new(|| env::var("GANDI_PATKEY").ok());
 
-const API_BASE: &str = "https://api.gandi.net/v5/livedns";
+const API_HOST: &str = "api.gandi.net";
+const API_BASE: &str = "/v5/livedns";
 
 fn get_auth() -> Result<String> {
     let auth = if let Some(key) = API_KEY.as_ref() {
@@ -28,44 +33,120 @@ fn get_auth() -> Result<String> {
     Ok(auth)
 }
 
-async fn get<T>(url: &str) -> Result<Option<T>>
+fn load_system_certs() -> RootCertStore {
+    let mut root_store = RootCertStore::empty();
+    root_store.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
+    root_store
+}
+
+async fn get<T>(endpoint: &str) -> Result<Option<T>>
 where
     T: DeserializeOwned,
 {
-    let res = CLIENT.get(url)
+    info!("Connect");
+    let addr = format!("{API_HOST}:443");
+    let stream = TcpStream::connect(addr).await?;
+
+    info!("Certs");
+    let cert_store = load_system_certs();
+    let tlsdomain = ServerName::try_from(API_HOST)?;
+    let tlsconf = ClientConfig::builder()
+        .with_root_certificates(cert_store)
+        .with_no_client_auth();
+    let tlsconn = TlsConnector::from(Arc::new(tlsconf));
+    let tlsstream = tlsconn.connect(tlsdomain, stream).await?;
+
+    info!("Handshake");
+    let (mut sender, conn) = http1::handshake(FuturesIo::new(tlsstream)).await?;
+    info!("spawn");
+
+    smol::spawn(async move {
+        info!("Conn await");
+        if let Err(e) = conn.await {
+            error!("Connection failed: {:?}", e);
+        }
+        info!("Conn done");
+    }).detach();
+
+    info!("Req https://{API_HOST}{endpoint}");
+    let req = Request::get(format!("https://{API_HOST}{endpoint}"))
+        .header(HOST, API_HOST)
         .header(AUTHORIZATION, get_auth()?)
-        .send().await?;
+        .header(ACCEPT, "application/json")
+        .body(Empty::<Bytes>::new())?;
+
+    info!("Send");
+    let res = sender.send_request(req).await?;
+
     match res.status() {
         StatusCode::OK => {
-            let recs = res.json().await?;
-            Ok(Some(recs))
+            // Asynchronously aggregate the chunks of the body
+            info!("collect");
+            let body = res.collect().await?
+                .aggregate();
+            let obj: T = serde_json::from_reader(body.reader())?;
+
+            Ok(Some(obj))
         }
         StatusCode::NOT_FOUND => {
-            warn!("Gandi record doesn't exist: {}", url);
+            warn!("Gandi record doesn't exist: {}", endpoint);
             Ok(None)
         }
         _ => {
-            let err: Error = res.json().await?;
-            error!("Gandi lookup failed: {}", err.message);
-            bail!("Gandi lookup failed: {}", err.message);
+            info!("collect err");
+            let body = res.collect().await?
+                .aggregate();
+            let mut data = String::new();
+            body.reader().read_to_string(&mut data)?;
+            info!("ERR {data}");
+//            let err: Error = serde_json::from_reader(body.reader())?;
+//            error!("Gandi lookup failed: {}", err.message);
+//            bail!("Gandi lookup failed: {}", err.message);
+            bail!("Gandi lookup failed");
         }
     }
+
+
+    // try to parse as json with serde_json
+    // info!("read body");
+    // //let obj: T = serde_json::from_reader(body.reader())?;
+    // info!("read done");
+
+//    Ok(Some(obj))
+    // let res = CLIENT.get(url)
+    //     .header(AUTHORIZATION, get_auth()?)
+    //     .send().await?;
+    // match res.status() {
+    //     StatusCode::OK => {
+    //         let recs = res.json().await?;
+    //         Ok(Some(recs))
+    //     }
+    //     StatusCode::NOT_FOUND => {
+    //         warn!("Gandi record doesn't exist: {}", url);
+    //         Ok(None)
+    //     }
+    //     _ => {
+    //         let err: Error = res.json().await?;
+    //         error!("Gandi lookup failed: {}", err.message);
+    //         bail!("Gandi lookup failed: {}", err.message);
+    //     }
+    // }
 }
 
 async fn put<T>(url: &str, body: &T) -> Result<()>
 where
     T: Serialize,
 {
-    let res = CLIENT.put(url)
-        .header(AUTHORIZATION, get_auth()?)
-        .json(body)
-        .send().await?;
-    if !res.status().is_success() {
-        let code = res.status();
-        let err: Error = res.json().await?;
-        error!("Gandi update failed: {} {}", code, err.message);
-        bail!("Gandi update failed: {} {}", code, err.message);
-    }
+    // let res = CLIENT.put(url)
+    //     .header(AUTHORIZATION, get_auth()?)
+    //     .json(body)
+    //     .send().await?;
+    // if !res.status().is_success() {
+    //     let code = res.status();
+    //     let err: Error = res.json().await?;
+    //     error!("Gandi update failed: {} {}", code, err.message);
+    //     bail!("Gandi update failed: {} {}", code, err.message);
+    // }
 
     Ok(())
 }
@@ -113,9 +194,11 @@ pub async fn set_host_ipv4(domain: &str, host: &str, ip: &Ipv4Addr) -> Result<()
 #[cfg(test)]
 mod tests {
     use super::*;
+    use macro_rules_attribute::apply;
+    use smol_macros::test;
     use tracing_test::traced_test;
 
-    #[tokio::test]
+    #[apply(test!)]
     #[traced_test]
     async fn test_fetch_records() -> Result<()> {
         let recs = get_records("haltcondition.net").await?;
@@ -123,7 +206,8 @@ mod tests {
         Ok(())
     }
 
-    #[tokio::test]
+    #[ignore]
+    #[apply(test!)]
     #[traced_test]
     async fn test_fetch_records_error() -> Result<()> {
         let recs = get_records("not.a.real.domain.net").await?;
@@ -131,7 +215,8 @@ mod tests {
         Ok(())
     }
 
-    #[tokio::test]
+    #[ignore]
+    #[apply(test!)]
     #[traced_test]
     async fn test_fetch_ipv4() -> Result<()> {
         let ip = get_host_ipv4("haltcondition.net", "janus").await?;
@@ -140,7 +225,8 @@ mod tests {
         Ok(())
     }
 
-    #[tokio::test]
+    #[ignore]
+    #[apply(test!)]
     #[traced_test]
     async fn test_update_ipv4() -> Result<()> {
         let cur = get_host_ipv4("haltcondition.net", "test").await?

@@ -3,13 +3,12 @@ mod gandi;
 mod systemd;
 
 use anyhow::Result;
-use tokio;
 use tracing::info;
 use tracing_subscriber::{filter::LevelFilter, EnvFilter};
 
 pub fn init_logging() -> Result<()> {
     let env_log = EnvFilter::builder()
-        .with_default_directive(LevelFilter::INFO.into())
+        .with_default_directive(LevelFilter::TRACE.into())
         .from_env_lossy();
 
     tracing_log::LogTracer::init()?;
@@ -21,13 +20,14 @@ pub fn init_logging() -> Result<()> {
     Ok(())
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    init_logging()?;
-    info!("Starting...");
+fn main() -> Result<()> {
+    smol::block_on(async {
+        init_logging()?;
+        info!("Starting...");
 
-    let recs = gandi::get_records("htpc.haltcondition.net").await?;
-    println!("Records: {recs:?}");
+        let recs = gandi::get_records("haltcondition.net").await?;
+        println!("Records: {recs:?}");
 
-    Ok(())
+        Ok(())
+    })
 }

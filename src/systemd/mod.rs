@@ -2,13 +2,13 @@
 use std::{future, net::{IpAddr, Ipv4Addr}};
 
 use anyhow::{bail, Context, Result};
-use futures::{stream, StreamExt, TryStreamExt};
-use rtnetlink::packet_route::{address::AddressAttribute, AddressFamily};
-use tracing::{error, info, warn};
+use futures::{stream, TryStreamExt};
+use rtnetlink::{packet_route::{address::AddressAttribute, AddressFamily}, sys::SmolSocket};
+//use tracing::{error, info, warn};
 
 async fn get_if_addr(ifname: &String) -> Result<Ipv4Addr> {
-    let (connection, handle, _) = rtnetlink::new_connection()?;
-    tokio::spawn(connection);
+    let (connection, handle, _) = rtnetlink::new_connection_with_socket::<SmolSocket>()?;
+    smol::spawn(connection).detach();
 
     let link = handle.link().get()
         .match_name(ifname.clone())
@@ -60,10 +60,12 @@ async fn get_if_addr(ifname: &String) -> Result<Ipv4Addr> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tokio::fs::read_to_string;
+    use macro_rules_attribute::apply;
+    use smol::fs::read_to_string;
+    use smol_macros::test;
     use tracing_test::traced_test;
 
-    #[tokio::test]
+    #[apply(test!)]
     #[traced_test]
     async fn test_fetch_addrs() -> Result<()> {
         // Hack: parse an interface address out of kernel routes
