@@ -1,19 +1,17 @@
 
 mod types;
 
-use std::{env, io::Read, net::Ipv4Addr, sync::{Arc, LazyLock}};
+use std::{env, net::Ipv4Addr, sync::{Arc, LazyLock}};
 
-use anyhow::{bail, Context, Result};
+use anyhow::{bail, Result};
 use futures_rustls::{pki_types::ServerName, rustls::{ClientConfig, RootCertStore}, TlsConnector};
-use http_body_util::{BodyExt, Empty};
-use hyper::{body::{Buf, Bytes}, client::conn::http1, header::{ACCEPT, AUTHORIZATION, HOST}, Method, Request, StatusCode};
+use http_body_util::BodyExt;
+use hyper::{body::{Buf, Incoming}, client::conn::http1, header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE, HOST}, Request, Response, StatusCode};
 use serde::{de::DeserializeOwned, Serialize};
-use smol::{net::TcpStream, Executor};
+use smol::net::TcpStream;
 use smol_hyper::rt::FuturesIo;
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 use types::{Error, Record, RecordUpdate};
-
-static EXECUTOR: LazyLock<Executor> = LazyLock::new(|| Executor::new());
 
 static API_KEY: LazyLock<Option<String>> = LazyLock::new(|| env::var("GANDI_APIKEY").ok());
 static PAT_KEY: LazyLock<Option<String>> = LazyLock::new(|| env::var("GANDI_PATKEY").ok());
@@ -39,10 +37,7 @@ fn load_system_certs() -> RootCertStore {
     root_store
 }
 
-async fn get<T>(endpoint: &str) -> Result<Option<T>>
-where
-    T: DeserializeOwned,
-{
+async fn request(req: Request<String>) -> Result<Response<Incoming>> {
     info!("Connect");
     let addr = format!("{API_HOST}:443");
     let stream = TcpStream::connect(addr).await?;
@@ -68,15 +63,24 @@ where
         info!("Conn done");
     }).detach();
 
-    info!("Req https://{API_HOST}{endpoint}");
-    let req = Request::get(format!("https://{API_HOST}{endpoint}"))
+    info!("Send");
+    let res = sender.send_request(req).await?;
+
+    Ok(res)
+}
+
+async fn get<T>(endpoint: &str) -> Result<Option<T>>
+where
+    T: DeserializeOwned,
+{
+    debug!("Request https://{API_HOST}{endpoint}");
+    let req = Request::get(format!("{endpoint}"))
         .header(HOST, API_HOST)
         .header(AUTHORIZATION, get_auth()?)
         .header(ACCEPT, "application/json")
-        .body(Empty::<Bytes>::new())?;
+        .body(String::new())?;
 
-    info!("Send");
-    let res = sender.send_request(req).await?;
+    let res = request(req).await?;
 
     match res.status() {
         StatusCode::OK => {
@@ -96,57 +100,35 @@ where
             info!("collect err");
             let body = res.collect().await?
                 .aggregate();
-            let mut data = String::new();
-            body.reader().read_to_string(&mut data)?;
-            info!("ERR {data}");
-//            let err: Error = serde_json::from_reader(body.reader())?;
-//            error!("Gandi lookup failed: {}", err.message);
-//            bail!("Gandi lookup failed: {}", err.message);
-            bail!("Gandi lookup failed");
+            let err: Error = serde_json::from_reader(body.reader())?;
+            error!("Gandi lookup failed: {}", err.message);
+            bail!("Gandi lookup failed: {}", err.message);
         }
     }
-
-
-    // try to parse as json with serde_json
-    // info!("read body");
-    // //let obj: T = serde_json::from_reader(body.reader())?;
-    // info!("read done");
-
-//    Ok(Some(obj))
-    // let res = CLIENT.get(url)
-    //     .header(AUTHORIZATION, get_auth()?)
-    //     .send().await?;
-    // match res.status() {
-    //     StatusCode::OK => {
-    //         let recs = res.json().await?;
-    //         Ok(Some(recs))
-    //     }
-    //     StatusCode::NOT_FOUND => {
-    //         warn!("Gandi record doesn't exist: {}", url);
-    //         Ok(None)
-    //     }
-    //     _ => {
-    //         let err: Error = res.json().await?;
-    //         error!("Gandi lookup failed: {}", err.message);
-    //         bail!("Gandi lookup failed: {}", err.message);
-    //     }
-    // }
 }
 
-async fn put<T>(url: &str, body: &T) -> Result<()>
+async fn put<T>(url: &str, obj: &T) -> Result<()>
 where
     T: Serialize,
 {
-    // let res = CLIENT.put(url)
-    //     .header(AUTHORIZATION, get_auth()?)
-    //     .json(body)
-    //     .send().await?;
-    // if !res.status().is_success() {
-    //     let code = res.status();
-    //     let err: Error = res.json().await?;
-    //     error!("Gandi update failed: {} {}", code, err.message);
-    //     bail!("Gandi update failed: {} {}", code, err.message);
-    // }
+    let body = serde_json::to_string(obj)?;
+    let req = Request::put(url)
+        .header(HOST, API_HOST)
+        .header(CONTENT_TYPE, "application/json")
+        .header(ACCEPT, "application/json")
+        .header(AUTHORIZATION, get_auth()?)
+        .body(body)?;
+
+    let res = request(req).await?;
+
+    if !res.status().is_success() {
+        let code = res.status();
+        let body = res.collect().await?
+            .aggregate();
+        let err: Error = serde_json::from_reader(body.reader())?;
+        error!("Gandi update failed: {} {}", code, err.message);
+        bail!("Gandi update failed: {} {}", code, err.message);
+    }
 
     Ok(())
 }
@@ -206,7 +188,6 @@ mod tests {
         Ok(())
     }
 
-    #[ignore]
     #[apply(test!)]
     #[traced_test]
     async fn test_fetch_records_error() -> Result<()> {
@@ -215,7 +196,6 @@ mod tests {
         Ok(())
     }
 
-    #[ignore]
     #[apply(test!)]
     #[traced_test]
     async fn test_fetch_ipv4() -> Result<()> {
@@ -225,7 +205,6 @@ mod tests {
         Ok(())
     }
 
-    #[ignore]
     #[apply(test!)]
     #[traced_test]
     async fn test_update_ipv4() -> Result<()> {
