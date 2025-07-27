@@ -28,7 +28,7 @@ pub(crate) async fn get_if_addr(ifname: &String) -> Result<Ipv4Addr> {
         )
         .map_ok(|attrs| stream::iter(
             attrs.into_iter()
-                .map(|a| Ok::<AddressAttribute, rtnetlink::Error>(a))
+                .map(Ok::<AddressAttribute, rtnetlink::Error>)
         ))
         .try_flatten()
         .try_collect::<Vec<AddressAttribute>>().await?
@@ -41,7 +41,7 @@ pub(crate) async fn get_if_addr(ifname: &String) -> Result<Ipv4Addr> {
         })
         .collect::<Vec<IpAddr>>();
 
-    if addrs.len() == 0 {
+    if addrs.is_empty() {
         bail!("No IPv4 address found for interface {ifname}")
     }
     if addrs.len() > 1 {

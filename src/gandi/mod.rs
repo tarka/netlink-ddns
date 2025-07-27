@@ -62,12 +62,12 @@ async fn request(req: Request<String>) -> Result<Response<Incoming>> {
     Ok(res)
 }
 
-async fn get<T>(endpoint: &str) -> Result<Option<T>>
+async fn get<T>(endpoint: &String) -> Result<Option<T>>
 where
     T: DeserializeOwned,
 {
     debug!("Request https://{API_HOST}{endpoint}");
-    let req = Request::get(format!("{endpoint}"))
+    let req = Request::get(endpoint)
         .header(HOST, API_HOST)
         .header(AUTHORIZATION, get_auth()?)
         .header(ACCEPT, "application/json")
