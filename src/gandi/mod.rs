@@ -10,7 +10,7 @@ use hyper::{body::{Buf, Incoming}, client::conn::http1, header::{ACCEPT, AUTHORI
 use serde::{de::DeserializeOwned, Serialize};
 use smol::net::TcpStream;
 use smol_hyper::rt::FuturesIo;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, warn};
 use types::{Error, Record, RecordUpdate};
 
 static API_KEY: LazyLock<Option<String>> = LazyLock::new(|| env::var("GANDI_APIKEY").ok());
@@ -38,11 +38,9 @@ fn load_system_certs() -> RootCertStore {
 }
 
 async fn request(req: Request<String>) -> Result<Response<Incoming>> {
-    info!("Connect");
     let addr = format!("{API_HOST}:443");
     let stream = TcpStream::connect(addr).await?;
 
-    info!("Certs");
     let cert_store = load_system_certs();
     let tlsdomain = ServerName::try_from(API_HOST)?;
     let tlsconf = ClientConfig::builder()
@@ -51,19 +49,14 @@ async fn request(req: Request<String>) -> Result<Response<Incoming>> {
     let tlsconn = TlsConnector::from(Arc::new(tlsconf));
     let tlsstream = tlsconn.connect(tlsdomain, stream).await?;
 
-    info!("Handshake");
     let (mut sender, conn) = http1::handshake(FuturesIo::new(tlsstream)).await?;
-    info!("spawn");
 
     smol::spawn(async move {
-        info!("Conn await");
         if let Err(e) = conn.await {
             error!("Connection failed: {:?}", e);
         }
-        info!("Conn done");
     }).detach();
 
-    info!("Send");
     let res = sender.send_request(req).await?;
 
     Ok(res)
@@ -85,7 +78,6 @@ where
     match res.status() {
         StatusCode::OK => {
             // Asynchronously aggregate the chunks of the body
-            info!("collect");
             let body = res.collect().await?
                 .aggregate();
             let obj: T = serde_json::from_reader(body.reader())?;
@@ -97,7 +89,6 @@ where
             Ok(None)
         }
         _ => {
-            info!("collect err");
             let body = res.collect().await?
                 .aggregate();
             let err: Error = serde_json::from_reader(body.reader())?;

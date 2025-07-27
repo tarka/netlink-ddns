@@ -8,7 +8,7 @@ use tracing_subscriber::{filter::LevelFilter, EnvFilter};
 
 pub fn init_logging() -> Result<()> {
     let env_log = EnvFilter::builder()
-        .with_default_directive(LevelFilter::TRACE.into())
+        .with_default_directive(LevelFilter::INFO.into())
         .from_env_lossy();
 
     tracing_log::LogTracer::init()?;
