@@ -173,6 +173,7 @@ mod tests {
 
     #[apply(test!)]
     #[traced_test]
+    #[cfg_attr(not(feature = "test_gandi"), ignore = "Gandi API test")]
     async fn test_fetch_records() -> Result<()> {
         let recs = get_records("haltcondition.net").await?;
         assert!(recs.len() > 0);
@@ -181,6 +182,7 @@ mod tests {
 
     #[apply(test!)]
     #[traced_test]
+    #[cfg_attr(not(feature = "test_gandi"), ignore = "Gandi API test")]
     async fn test_fetch_records_error() -> Result<()> {
         let recs = get_records("not.a.real.domain.net").await?;
         assert!(recs.is_empty());
@@ -189,6 +191,7 @@ mod tests {
 
     #[apply(test!)]
     #[traced_test]
+    #[cfg_attr(not(feature = "test_gandi"), ignore = "Gandi API test")]
     async fn test_fetch_ipv4() -> Result<()> {
         let ip = get_host_ipv4("haltcondition.net", "janus").await?;
         assert!(ip.is_some());
@@ -198,6 +201,7 @@ mod tests {
 
     #[apply(test!)]
     #[traced_test]
+    #[cfg_attr(not(feature = "test_gandi"), ignore = "Gandi API test")]
     async fn test_update_ipv4() -> Result<()> {
         let cur = get_host_ipv4("haltcondition.net", "test").await?
             .unwrap_or(Ipv4Addr::new(1,1,1,1));
