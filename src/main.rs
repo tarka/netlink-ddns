@@ -25,8 +25,11 @@ fn main() -> Result<()> {
         init_logging()?;
         info!("Starting...");
 
-        let recs = gandi::get_records("haltcondition.net").await?;
-        println!("Records: {recs:?}");
+        // let recs = gandi::get_records("haltcondition.net").await?;
+        // println!("Records: {recs:?}");
+
+        systemd::listen_for_interface_changes("test0".to_string()).await?;
+
 
         Ok(())
     })

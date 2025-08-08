@@ -142,3 +142,85 @@ pub trait Manager {
     #[zbus(property)]
     fn operational_state(&self) -> zbus::Result<String>;
 }
+
+#[proxy(
+    interface = "org.freedesktop.network1.Link",
+    default_service = "org.freedesktop.network1"
+)]
+pub trait Link {
+    /// CarrierState property
+    #[zbus(property)]
+    fn carrier_state(&self) -> zbus::Result<String>;
+
+    /// Configuration property
+    #[zbus(property)]
+    fn configuration(&self) -> zbus::Result<Vec<zbus::zvariant::OwnedValue>>;
+
+    /// DNS property
+    #[zbus(property)]
+    fn dns(&self) -> zbus::Result<Vec<zbus::zvariant::OwnedValue>>;
+
+    /// DNSEx property
+    #[zbus(property, name = "DNSEx")]
+    fn dnsex(&self) -> zbus::Result<Vec<zbus::zvariant::OwnedValue>>;
+
+    /// DNSOverTLS property
+    #[zbus(property, name = "DNSOverTLS")]
+    fn dnsover_tls(&self) -> zbus::Result<String>;
+
+    /// DNSSEC property
+    #[zbus(property)]
+    fn dnssec(&self) -> zbus::Result<String>;
+
+    /// DNSSECNegativeTrustAnchors property
+    #[zbus(property, name = "DNSSECNegativeTrustAnchors")]
+    fn dnssecnegative_trust_anchors(&self) -> zbus::Result<Vec<String>>;
+
+    /// Domains property
+    #[zbus(property)]
+    fn domains(&self) -> zbus::Result<Vec<zbus::zvariant::OwnedValue>>;
+
+    /// IPv4AddressState property
+    #[zbus(property, name = "IPv4AddressState")]
+    fn ipv4_address_state(&self) -> zbus::Result<String>;
+
+    /// IPv6AddressState property
+    #[zbus(property, name = "IPv6AddressState")]
+    fn ipv6_address_state(&self) -> zbus::Result<String>;
+
+    /// LLmnr property
+    #[zbus(property, name = "LLmnr")]
+    fn llmnr(&self) -> zbus::Result<String>;
+
+    /// MACAddress property
+    #[zbus(property, name = "MACAddress")]
+    fn mac_address(&self) -> zbus::Result<String>;
+
+    /// MulticastDNS property
+    #[zbus(property, name = "MulticastDNS")]
+    fn multicast_dns(&self) -> zbus::Result<String>;
+
+    /// NTP property
+    #[zbus(property)]
+    fn ntp(&self) -> zbus::Result<Vec<zbus::zvariant::OwnedValue>>;
+
+    /// OperationalState property
+    #[zbus(property)]
+    fn operational_state(&self) -> zbus::Result<String>;
+
+    /// Path property
+    #[zbus(property)]
+    fn path(&self) -> zbus::Result<zbus::zvariant::OwnedObjectPath>;
+
+    /// Port property
+    #[zbus(property)]
+    fn port(&self) -> zbus::Result<u32>;
+
+    /// Type property
+    #[zbus(property)]
+    fn type_(&self) -> zbus::Result<String>;
+
+    /// Udi property
+    #[zbus(property)]
+    fn udi(&self) -> zbus::Result<String>;
+}
