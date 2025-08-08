@@ -1,6 +1,6 @@
 
 mod gandi;
-mod systemd;
+mod netlink;
 
 use anyhow::Result;
 use tracing::info;
@@ -27,8 +27,6 @@ fn main() -> Result<()> {
 
         // let recs = gandi::get_records("haltcondition.net").await?;
         // println!("Records: {recs:?}");
-
-        systemd::listen_for_interface_changes("test0".to_string()).await?;
 
 
         Ok(())
