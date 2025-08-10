@@ -1338,6 +1338,7 @@ dependencies = [
  "http-body-util",
  "hyper",
  "macro_rules_attribute",
+ "netlink-sys",
  "rtnetlink",
  "serde",
  "serde_json",

@@ -3,6 +3,7 @@ mod gandi;
 mod netlink;
 
 use anyhow::Result;
+use futures::stream::StreamExt;
 use tracing::info;
 use tracing_subscriber::{filter::LevelFilter, EnvFilter};
 
@@ -25,8 +26,15 @@ fn main() -> Result<()> {
         init_logging()?;
         info!("Starting...");
 
-        // let recs = gandi::get_records("haltcondition.net").await?;
-        // println!("Records: {recs:?}");
+        // let ip = netlink::get_if_addr("test0").await?;
+        // println!("IP: {ip}");
+
+        let mut msgs = netlink::ipv4_addr_stream("test0").await?;
+
+        while let Some(message) = msgs.next().await {
+            //println!("Route change message - {message:?}");
+            println!("Route change message");
+        }
 
 
         Ok(())
