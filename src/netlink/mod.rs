@@ -4,7 +4,7 @@ use std::{
 };
 
 use anyhow::{Context, Result, bail};
-use futures::{channel::mpsc::{unbounded, UnboundedReceiver}, stream, StreamExt, TryStreamExt};
+use futures::{channel::mpsc::{unbounded, UnboundedReceiver}, stream, SinkExt, StreamExt, TryStreamExt};
 use netlink_sys::{AsyncSocket, SocketAddr};
 use rtnetlink::{
     constants::RTMGRP_IPV4_IFADDR, new_connection_with_socket,
@@ -86,7 +86,7 @@ pub(crate) async fn get_if_addr(ifname: &str) -> Result<Ipv4Addr> {
 pub async fn ipv4_addr_stream(ifname: &str) -> Result<UnboundedReceiver<IpAddrChange>> {
     let (mut connection, _handle, mut nlmsgs) = new_connection_with_socket::<SmolSocket>()?;
 
-    let (tx, rx) = unbounded();
+    let (mut tx, rx) = unbounded();
 
     let addr = SocketAddr::new(0, RTMGRP_IPV4_IFADDR);
 
@@ -99,13 +99,19 @@ pub async fn ipv4_addr_stream(ifname: &str) -> Result<UnboundedReceiver<IpAddrCh
         .detach();
 
 
-    // smol::spawn(async move {
+     smol::spawn(async move {
         while let Some((message, _)) = nlmsgs.next().await {
             let payload = message.payload;
             match payload {
                 NetlinkPayload::InnerMessage(msg) => {
                     info!("Got payload: {msg:#?}");
 //                    let m = filter_msg(msg).await.unwrap();
+                    let m = IpAddrChange {
+                        iface: "dummy0".to_string(),
+                        addr: Ipv4Addr::new(1,1,1,1)
+
+                    };
+                    tx.send(m).await.unwrap(); // FIXME
                 }
                 _ => {
                     // According to https://docs.kernel.org/userspace-api/netlink/intro.html:
@@ -117,9 +123,8 @@ pub async fn ipv4_addr_stream(ifname: &str) -> Result<UnboundedReceiver<IpAddrCh
                 }
             }
         }
-    //     Ok(())
-    // })
-    // .detach();
+    })
+    .detach();
 
     Ok(rx)
 }
