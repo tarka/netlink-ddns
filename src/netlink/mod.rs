@@ -85,7 +85,7 @@ pub(crate) async fn get_if_addr(ifname: &str) -> Result<Ipv4Addr> {
     }
 }
 
-pub async fn ipv4_addr_stream(ifname: &str) -> Result<UnboundedReceiver<IpAddrChange>> {
+pub async fn ipv4_addr_stream(ifname: &'static str) -> Result<UnboundedReceiver<IpAddrChange>> {
     let addr = SocketAddr::new(0, RTMGRP_IPV4_IFADDR);
 
     let (mut connection, _handle, mut nlmsgs) =
@@ -102,17 +102,12 @@ pub async fn ipv4_addr_stream(ifname: &str) -> Result<UnboundedReceiver<IpAddrCh
 
      smol::spawn(async move {
         while let Some((message, _)) = nlmsgs.next().await {
-            let payload = message.payload;
-            match payload {
+            match message.payload {
                 NetlinkPayload::InnerMessage(msg) => {
                     info!("Got payload: {msg:#?}");
-//                    let m = filter_msg(msg).await.unwrap();
-                    let m = IpAddrChange {
-                        iface: "dummy0".to_string(),
-                        addr: Ipv4Addr::new(1,1,1,1)
-
-                    };
-                    tx.send(m).await.unwrap(); // FIXME
+                    if let Some(m) = filter_msg(ifname, msg) {
+                        tx.send(m).await.unwrap();
+                    }
                 }
                 _ => {
                     // According to https://docs.kernel.org/userspace-api/netlink/intro.html:
@@ -120,7 +115,7 @@ pub async fn ipv4_addr_stream(ifname: &str) -> Result<UnboundedReceiver<IpAddrCh
                     //   This is a unidirectional form of communication (kernel -> user)
                     //   and does not involve any control messages like NLMSG_ERROR or NLMSG_DONE.
                     //
-                    warn!("Unexpected netlink message: {payload:?}");
+                    warn!("Unexpected netlink message: {message:?}");
                 }
             }
         }
@@ -190,7 +185,7 @@ fn get_ip(amsg: &AddressMessage) -> Option<Ipv4Addr> {
         })
 }
 
-async fn filter_msg(ifname: &str, msg: RouteNetlinkMessage) -> Option<IpAddrChange> {
+fn filter_msg(ifname: &str, msg: RouteNetlinkMessage) -> Option<IpAddrChange> {
     info!("Received Message: {msg:?}");
     match msg {
         RouteNetlinkMessage::NewAddress(ref amsg)

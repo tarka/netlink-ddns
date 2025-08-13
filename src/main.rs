@@ -26,9 +26,6 @@ fn main() -> Result<()> {
         init_logging()?;
         info!("Starting...");
 
-        // let ip = netlink::get_if_addr("test0").await?;
-        // println!("IP: {ip}");
-
         let mut msgs = netlink::ipv4_addr_stream("test0").await?;
 
         while let Some(message) = msgs.next().await {
