@@ -9,19 +9,21 @@ use netlink_sys::{AsyncSocket, SocketAddr};
 use rtnetlink::{
     constants::RTMGRP_IPV4_IFADDR, new_connection_with_socket,
     packet_core::NetlinkPayload, packet_route::{
-        address::{AddressAttribute, AddressMessage}, AddressFamily
+        address::{AddressAttribute, AddressMessage}, AddressFamily, RouteNetlinkMessage
     },
     sys::SmolSocket
 };
 use tracing::{info, warn};
 
+#[derive(Debug)]
 pub struct IpAddrChange {
     iface: String,
     addr: Ipv4Addr,
 }
 
 pub(crate) async fn get_if_addr(ifname: &str) -> Result<Ipv4Addr> {
-    let (connection, handle, _msgs) = new_connection_with_socket::<SmolSocket>()?;
+    let (connection, handle, _msgs) =
+        new_connection_with_socket::<SmolSocket>()?;
 
     smol::spawn(connection)
         .detach();
@@ -84,11 +86,11 @@ pub(crate) async fn get_if_addr(ifname: &str) -> Result<Ipv4Addr> {
 }
 
 pub async fn ipv4_addr_stream(ifname: &str) -> Result<UnboundedReceiver<IpAddrChange>> {
-    let (mut connection, _handle, mut nlmsgs) = new_connection_with_socket::<SmolSocket>()?;
-
-    let (mut tx, rx) = unbounded();
-
     let addr = SocketAddr::new(0, RTMGRP_IPV4_IFADDR);
+
+    let (mut connection, _handle, mut nlmsgs) =
+        new_connection_with_socket::<SmolSocket>()?;
+    let (mut tx, rx) = unbounded();
 
     connection
         .socket_mut()
@@ -97,7 +99,6 @@ pub async fn ipv4_addr_stream(ifname: &str) -> Result<UnboundedReceiver<IpAddrCh
 
     smol::spawn(connection)
         .detach();
-
 
      smol::spawn(async move {
         while let Some((message, _)) = nlmsgs.next().await {
@@ -168,8 +169,6 @@ pub async fn ipv4_addr_stream(ifname: &str) -> Result<UnboundedReceiver<IpAddrCh
 //     },
 // )
 
-
-
 fn is_our_if(ifname: &str, addr: &AddressMessage) -> bool {
     addr.attributes.iter()
         .find_map(|attr| {
@@ -181,13 +180,26 @@ fn is_our_if(ifname: &str, addr: &AddressMessage) -> bool {
         .map_or(false, |nif| nif == ifname)
 }
 
+fn get_ip(amsg: &AddressMessage) -> Option<Ipv4Addr> {
+    amsg.attributes.iter()
+        .find_map(|attr| {
+            match attr {
+                AddressAttribute::Address(IpAddr::V4(ip)) => Some(ip.clone()),
+                _ => None,
+            }
+        })
+}
+
 // async fn filter_msg(ifname: &str, msg: RouteNetlinkMessage) -> Result<Option<IpAddrChange>> {
 //     info!("Received Message: {msg:?}");
 //     match msg {
-//         RouteNetlinkMessage::DelAddress(amsg) => {
-//             if
+//         RouteNetlinkMessage::DelAddress(amsg)
+//             if is_our_if(ifname, &amsg) =>
+//         {
 //         }
-//         RouteNetlinkMessage::NewAddress(amsg) => {
+//         RouteNetlinkMessage::NewAddress(amsg)
+//             if is_our_if(ifname, &amsg) =>
+//         {
 //         }
 //         _ => {
 //             warn!("Unexpected RouteNetlinkMessage: {msg:#?}");
