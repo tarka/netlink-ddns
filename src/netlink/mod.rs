@@ -190,23 +190,30 @@ fn get_ip(amsg: &AddressMessage) -> Option<Ipv4Addr> {
         })
 }
 
-// async fn filter_msg(ifname: &str, msg: RouteNetlinkMessage) -> Result<Option<IpAddrChange>> {
-//     info!("Received Message: {msg:?}");
-//     match msg {
-//         RouteNetlinkMessage::DelAddress(amsg)
-//             if is_our_if(ifname, &amsg) =>
-//         {
-//         }
-//         RouteNetlinkMessage::NewAddress(amsg)
-//             if is_our_if(ifname, &amsg) =>
-//         {
-//         }
-//         _ => {
-//             warn!("Unexpected RouteNetlinkMessage: {msg:#?}");
-//             Ok(None)
-//         }
-//     }
-// }
+async fn filter_msg(ifname: &str, msg: RouteNetlinkMessage) -> Option<IpAddrChange> {
+    info!("Received Message: {msg:?}");
+    match msg {
+        RouteNetlinkMessage::NewAddress(ref amsg)
+            if is_our_if(ifname, amsg) =>
+        {
+            get_ip(amsg)
+                .map(|addr| IpAddrChange {
+                    iface: ifname.to_owned(),
+                    addr,
+                })
+        }
+        RouteNetlinkMessage::DelAddress(ref amsg)
+            if is_our_if(ifname, amsg) =>
+        {
+            warn!("Received Deleted Address message, but not actioning: {msg:#?}");
+            None
+        }
+        _ => {
+            warn!("Unexpected RouteNetlinkMessage: {msg:#?}");
+            None
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -295,5 +302,67 @@ mod tests {
         ];
 
         assert!(is_our_if(ifname, &addr));
+    }
+
+    #[test]
+    fn test_get_ip_with_ipv4_address() {
+        let mut addr = AddressMessage::default();
+        let expected_ip = Ipv4Addr::new(192, 168, 1, 1);
+        addr.attributes = vec![
+            AddressAttribute::Label("eth0".to_string()),
+            AddressAttribute::Address(IpAddr::V4(expected_ip)),
+            AddressAttribute::Local(IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1))),
+        ];
+
+        let result = get_ip(&addr);
+        assert_eq!(result, Some(expected_ip));
+    }
+
+    #[test]
+    fn test_get_ip_with_no_address_attribute() {
+        let mut addr = AddressMessage::default();
+        addr.attributes = vec![
+            AddressAttribute::Label("eth0".to_string()),
+            AddressAttribute::Local(IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1))),
+        ];
+
+        let result = get_ip(&addr);
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_get_ip_with_ipv6_address() {
+        let mut addr = AddressMessage::default();
+        addr.attributes = vec![
+            AddressAttribute::Label("eth0".to_string()),
+            AddressAttribute::Address(IpAddr::V6(std::net::Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1))),
+        ];
+
+        let result = get_ip(&addr);
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_get_ip_with_empty_attributes() {
+        let mut addr = AddressMessage::default();
+        addr.attributes = vec![];
+
+        let result = get_ip(&addr);
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_get_ip_multiple_ipv4_addresses() {
+        let mut addr = AddressMessage::default();
+        let expected_ip = Ipv4Addr::new(192, 168, 1, 1);
+        addr.attributes = vec![
+            AddressAttribute::Address(IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1))),
+            AddressAttribute::Address(IpAddr::V4(expected_ip)),
+            AddressAttribute::Local(IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1))),
+        ];
+
+        // Should return the first IPv4 address found
+        let result = get_ip(&addr);
+        assert_eq!(result, Some(Ipv4Addr::new(10, 0, 0, 1)));
     }
 }

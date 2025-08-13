@@ -32,8 +32,7 @@ fn main() -> Result<()> {
         let mut msgs = netlink::ipv4_addr_stream("test0").await?;
 
         while let Some(message) = msgs.next().await {
-            //println!("Route change message - {message:?}");
-            println!("Route change message");
+            println!("Route change message - {message:?}");
         }
 
 
