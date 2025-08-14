@@ -6,7 +6,7 @@ use config;
 use once_cell::sync::OnceCell;
 use serde::Deserialize;
 
-// FIXME: Uses OnceCell lib for now until OnceLock::get_or_try_init()
+// FIXME: Use OnceCell lib for now until OnceLock::get_or_try_init()
 // stablises.
 static CONFIG: OnceCell<Config> = OnceCell::new();
 

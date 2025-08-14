@@ -28,7 +28,7 @@ pub struct IpAddrChange {
     addr: Ipv4Addr,
 }
 
-pub(crate) async fn get_if_addr(ifname: &str) -> Result<Ipv4Addr> {
+pub(crate) async fn get_if_addr(ifname: &str) -> Result<Option<Ipv4Addr>> {
     let (connection, handle, _msgs) =
         new_connection_with_socket::<SmolSocket>()?;
 
@@ -80,13 +80,12 @@ pub(crate) async fn get_if_addr(ifname: &str) -> Result<Ipv4Addr> {
         .collect::<Vec<IpAddr>>();
 
     if addrs.is_empty() {
-        bail!("No IPv4 address found for interface {ifname}")
-    }
-    if addrs.len() > 1 {
+        warn!("No IPv4 address found for interface {ifname}");
+        Ok(None)
+    } else if addrs.len() > 1 {
         bail!("Multiple IPv4 addresses found on for interface {ifname}")
-    }
-    if let IpAddr::V4(ipaddr) = addrs[0] {
-        Ok(ipaddr)
+    } else if let IpAddr::V4(ipaddr) = addrs[0] {
+        Ok(Some(ipaddr))
     } else {
         bail!("Found non-IPv4 address on {ifname}; this is an internal logic error")
     }
