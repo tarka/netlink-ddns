@@ -104,7 +104,7 @@ pub async fn ipv4_addr_stream(ifname: &'static str) -> Result<UnboundedReceiver<
         while let Some((message, _)) = nlmsgs.next().await {
             match message.payload {
                 NetlinkPayload::InnerMessage(msg) => {
-                    info!("Got payload: {msg:#?}");
+                    info!("Got payload: {msg:?}");
                     if let Some(m) = filter_msg(ifname, msg) {
                         tx.send(m).await.unwrap();
                     }
@@ -157,7 +157,6 @@ fn get_ip(amsg: &AddressMessage) -> Option<Ipv4Addr> {
 }
 
 fn filter_msg(ifname: &str, msg: RouteNetlinkMessage) -> Option<IpAddrChange> {
-    info!("Received Message: {msg:?}");
     match msg {
         RouteNetlinkMessage::NewAddress(ref amsg)
             if is_our_if(ifname, amsg) =>
@@ -171,7 +170,7 @@ fn filter_msg(ifname: &str, msg: RouteNetlinkMessage) -> Option<IpAddrChange> {
         RouteNetlinkMessage::DelAddress(ref amsg)
             if is_our_if(ifname, amsg) =>
         {
-            warn!("Received Deleted Address message, but not actioning: {msg:#?}");
+            info!("Received Deleted Address message, but not actioning: {msg:#?}");
             None
         }
         _ => {
