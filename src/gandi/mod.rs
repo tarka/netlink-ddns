@@ -1,7 +1,7 @@
 
 mod types;
 
-use std::{env, net::Ipv4Addr, sync::{Arc, LazyLock}};
+use std::{net::Ipv4Addr, sync::Arc};
 
 use anyhow::{bail, Result};
 use futures_rustls::{pki_types::ServerName, rustls::{ClientConfig, RootCertStore}, TlsConnector};
@@ -13,16 +13,16 @@ use smol_hyper::rt::FuturesIo;
 use tracing::{debug, error, warn};
 use types::{Error, Record, RecordUpdate};
 
-static API_KEY: LazyLock<Option<String>> = LazyLock::new(|| env::var("GANDI_APIKEY").ok());
-static PAT_KEY: LazyLock<Option<String>> = LazyLock::new(|| env::var("GANDI_PATKEY").ok());
+use crate::config;
 
 const API_HOST: &str = "api.gandi.net";
 const API_BASE: &str = "/v5/livedns";
 
 fn get_auth() -> Result<String> {
-    let auth = if let Some(key) = API_KEY.as_ref() {
+    let config = config::get_config()?;
+    let auth = if let Some(key) = &config.gandi_api_key {
         format!("Apikey {key}")
-    } else if let Some(key) = PAT_KEY.as_ref() {
+    } else if let Some(key) = &config.gandi_pat_key {
         format!("Bearer {key}")
     } else {
         error!("No Gandi key set");

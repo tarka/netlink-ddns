@@ -1,4 +1,5 @@
 
+mod config;
 mod gandi;
 mod netlink;
 
@@ -7,7 +8,7 @@ use futures::stream::StreamExt;
 use tracing::info;
 use tracing_subscriber::{filter::LevelFilter, EnvFilter};
 
-pub fn init_logging() -> Result<()> {
+fn init_logging() -> Result<()> {
     let env_log = EnvFilter::builder()
         .with_default_directive(LevelFilter::INFO.into())
         .from_env_lossy();
@@ -21,12 +22,15 @@ pub fn init_logging() -> Result<()> {
     Ok(())
 }
 
-fn main() -> Result<()> {
-    smol::block_on(async {
-        init_logging()?;
-        info!("Starting...");
 
-        let mut msgs = netlink::ipv4_addr_stream("test0").await?;
+fn main() -> Result<()> {
+    init_logging()?;
+
+    smol::block_on(async {
+        info!("Starting...");
+        let config = config::get_config()?;
+
+        let mut msgs = netlink::ipv4_addr_stream(&config.iface).await?;
 
         while let Some(message) = msgs.next().await {
             println!("Route change message - {message:?}");
