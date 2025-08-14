@@ -1,0 +1,5 @@
+
+gandi_api_key = "xxx"
+domain = "haltcondition.net"
+host = "test"
+iface = "test0"
