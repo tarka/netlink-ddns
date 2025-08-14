@@ -16,7 +16,14 @@ use rtnetlink::{
 use tracing::{info, warn};
 
 #[derive(Debug)]
+pub enum ChangeType {
+    Add,
+    Del,
+}
+
+#[derive(Debug)]
 pub struct IpAddrChange {
+    ctype: ChangeType,
     iface: String,
     addr: Ipv4Addr,
 }
@@ -163,6 +170,7 @@ fn filter_msg(ifname: &str, msg: RouteNetlinkMessage) -> Option<IpAddrChange> {
         {
             get_ip(amsg)
                 .map(|addr| IpAddrChange {
+                    ctype: ChangeType::Add,
                     iface: ifname.to_owned(),
                     addr,
                 })
@@ -170,8 +178,12 @@ fn filter_msg(ifname: &str, msg: RouteNetlinkMessage) -> Option<IpAddrChange> {
         RouteNetlinkMessage::DelAddress(ref amsg)
             if is_our_if(ifname, amsg) =>
         {
-            info!("Received Deleted Address message, but not actioning: {msg:#?}");
-            None
+            get_ip(amsg)
+                .map(|addr| IpAddrChange {
+                    ctype: ChangeType::Del,
+                    iface: ifname.to_owned(),
+                    addr,
+                })
         }
         _ => {
             warn!("Unexpected RouteNetlinkMessage: {msg:#?}");
