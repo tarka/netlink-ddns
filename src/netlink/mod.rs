@@ -125,45 +125,6 @@ pub async fn ipv4_addr_stream(ifname: &'static str) -> Result<UnboundedReceiver<
     Ok(rx)
 }
 
-
-// NewAddress(
-//     AddressMessage {
-//         header: AddressHeader {
-//             family: Inet,
-//             prefix_len: 32,
-//             flags: AddressHeaderFlags(
-//                 Permanent,
-//             ),
-//             scope: Universe,
-//             index: 2,
-//         },
-//         attributes: [
-//             Address(
-//                 10.1.1.1,
-//             ),
-//             Local(
-//                 10.1.1.1,
-//             ),
-//             Label(
-//                 "test0",
-//             ),
-//             Flags(
-//                 AddressFlags(
-//                     Permanent,
-//                 ),
-//             ),
-//             CacheInfo(
-//                 CacheInfo {
-//                     ifa_preferred: 4294967295,
-//                     ifa_valid: 4294967295,
-//                     cstamp: 138208,
-//                     tstamp: 138208,
-//                 },
-//             ),
-//         ],
-//     },
-// )
-
 fn is_our_if(ifname: &str, addr: &AddressMessage) -> bool {
     addr.attributes.iter()
         .find_map(|attr| {
@@ -176,13 +137,23 @@ fn is_our_if(ifname: &str, addr: &AddressMessage) -> bool {
 }
 
 fn get_ip(amsg: &AddressMessage) -> Option<Ipv4Addr> {
-    amsg.attributes.iter()
-        .find_map(|attr| {
+    let v4s = amsg.attributes.iter()
+        .filter_map(|attr| {
             match attr {
                 AddressAttribute::Address(IpAddr::V4(ip)) => Some(ip.clone()),
                 _ => None,
             }
         })
+        .collect::<Vec<Ipv4Addr>>();
+
+    match v4s.len() {
+        0 => None,
+        1 => Some(v4s[0]),
+        _ => {
+            warn!("More that 1 IPv4 address found; not updating: {v4s:#?}");
+            None
+        }
+    }
 }
 
 fn filter_msg(ifname: &str, msg: RouteNetlinkMessage) -> Option<IpAddrChange> {
@@ -358,6 +329,6 @@ mod tests {
 
         // Should return the first IPv4 address found
         let result = get_ip(&addr);
-        assert_eq!(result, Some(Ipv4Addr::new(10, 0, 0, 1)));
+        assert_eq!(result, None);
     }
 }
