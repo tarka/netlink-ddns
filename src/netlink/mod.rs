@@ -23,9 +23,9 @@ pub enum ChangeType {
 
 #[derive(Debug)]
 pub struct IpAddrChange {
-    ctype: ChangeType,
-    iface: String,
-    addr: Ipv4Addr,
+    pub ctype: ChangeType,
+    pub iface: String,
+    pub addr: Ipv4Addr,
 }
 
 pub(crate) async fn get_if_addr(ifname: &str) -> Result<Option<Ipv4Addr>> {

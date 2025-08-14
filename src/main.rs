@@ -8,6 +8,8 @@ use futures::stream::StreamExt;
 use tracing::{info, warn};
 use tracing_subscriber::{filter::LevelFilter, EnvFilter};
 
+use crate::netlink::ChangeType;
+
 fn init_logging() -> Result<()> {
     let env_log = EnvFilter::builder()
         .with_default_directive(LevelFilter::INFO.into())
@@ -41,9 +43,22 @@ fn main() -> Result<()> {
             warn!("No local address currently set");
         }
 
+        info!("Starting monitoring stream");
         let mut msgs = netlink::ipv4_addr_stream(&config.iface).await?;
         while let Some(message) = msgs.next().await {
-            println!("Route change message - {message:?}");
+            match message.ctype {
+                ChangeType::Add => {
+                    let ip = message.addr;
+                    info!("Received new address: {ip}");
+                    info!("Setting DNS record");
+                    gandi::set_host_ipv4(&config.domain, &config.host, &ip).await?;
+                    info!("DNS Set");
+                }
+                ChangeType::Del => {
+                    let ip = message.addr;
+                    info!("IP {ip} was deleted from iface {}", config.iface);
+                }
+            }
         }
 
         Ok(())
