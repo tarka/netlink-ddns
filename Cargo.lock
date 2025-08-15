@@ -850,6 +850,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "netlink-ddns"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "config",
+ "futures",
+ "futures-rustls",
+ "http-body-util",
+ "hyper",
+ "macro_rules_attribute",
+ "netlink-sys",
+ "once_cell",
+ "rtnetlink",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "smol",
+ "smol-hyper",
+ "smol-macros",
+ "test-log",
+ "tracing",
+ "tracing-log",
+ "tracing-subscriber",
+ "tracing-test",
+ "webpki-roots",
+]
+
+[[package]]
 name = "netlink-packet-core"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1353,34 +1381,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
-]
-
-[[package]]
-name = "systemd-ddns"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "config",
- "futures",
- "futures-rustls",
- "http-body-util",
- "hyper",
- "macro_rules_attribute",
- "netlink-sys",
- "once_cell",
- "rtnetlink",
- "serde",
- "serde_derive",
- "serde_json",
- "smol",
- "smol-hyper",
- "smol-macros",
- "test-log",
- "tracing",
- "tracing-log",
- "tracing-subscriber",
- "tracing-test",
- "webpki-roots",
 ]
 
 [[package]]

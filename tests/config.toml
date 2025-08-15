@@ -1,5 +1,7 @@
 
+log_level = "debug"
 gandi_api_key = "xxx"
 domain = "haltcondition.net"
 host = "test"
 iface = "test0"
+dry_run = true

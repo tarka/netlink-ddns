@@ -24,7 +24,7 @@ pub struct Config {
 pub fn get_config() -> Result<&'static Config> {
     CONFIG.get_or_try_init(|| {
         let confile = env::var("NLDDNS_CONFIG")
-            .unwrap_or("/etc/nlddns/config.toml".to_string());
+            .unwrap_or("/etc/netlink-ddns/config.toml".to_string());
 
         let conf = config::Config::builder()
             .add_source(config::File::with_name(&confile))

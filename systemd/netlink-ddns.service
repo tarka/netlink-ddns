@@ -1,0 +1,22 @@
+[Unit]
+Description=DDNS updater
+After=network-online.target
+Wants=network-online.target systemd-networkd-wait-online.service
+
+[Service]
+Restart=on-abnormal
+
+; User and group the process will run as.
+User=www-data
+Group=www-data
+
+ExecStart=/home/ssmith/.cargo/bin/netlink-ddns
+
+; Use graceful shutdown with a reasonable timeout
+KillMode=mixed
+KillSignal=SIGQUIT
+TimeoutStopSec=5s
+
+[Install]
+WantedBy=multi-user.target
+
