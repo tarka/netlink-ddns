@@ -12,11 +12,13 @@ static CONFIG: OnceCell<Config> = OnceCell::new();
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
+    pub log_level: Option<String>,
     pub gandi_api_key: Option<String>,
     pub gandi_pat_key: Option<String>,
     pub domain: String,
     pub host: String,
     pub iface: String,
+    pub dry_run: Option<bool>,
 }
 
 pub fn get_config() -> Result<&'static Config> {

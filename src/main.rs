@@ -3,6 +3,8 @@ mod config;
 mod gandi;
 mod netlink;
 
+use std::str::FromStr;
+
 use anyhow::Result;
 use futures::stream::StreamExt;
 use tracing::{info, warn};
@@ -10,9 +12,13 @@ use tracing_subscriber::{filter::LevelFilter, EnvFilter};
 
 use crate::netlink::ChangeType;
 
-fn init_logging() -> Result<()> {
+fn init_logging(level: &Option<String>) -> Result<()> {
+    let lf = level.clone()
+        .map(|s| LevelFilter::from_str(&s).expect("Invalid log string"))
+        .unwrap_or(LevelFilter::INFO);
+
     let env_log = EnvFilter::builder()
-        .with_default_directive(LevelFilter::INFO.into())
+        .with_default_directive(lf.into())
         .from_env_lossy();
 
     tracing_log::LogTracer::init()?;
@@ -26,11 +32,11 @@ fn init_logging() -> Result<()> {
 
 
 fn main() -> Result<()> {
-    init_logging()?;
+    let config = config::get_config()?;
+    init_logging(&config.log_level)?;
 
     smol::block_on(async {
         info!("Starting...");
-        let config = config::get_config()?;
 
         let local = netlink::get_if_addr(&config.iface).await?;
         if let Some(lip) = local {

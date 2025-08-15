@@ -10,7 +10,7 @@ use hyper::{body::{Buf, Incoming}, client::conn::http1, header::{ACCEPT, AUTHORI
 use serde::{de::DeserializeOwned, Serialize};
 use smol::net::TcpStream;
 use smol_hyper::rt::FuturesIo;
-use tracing::{debug, error, warn};
+use tracing::{debug, error, info, warn};
 use types::{Error, Record, RecordUpdate};
 
 use crate::config;
@@ -160,6 +160,10 @@ pub async fn set_host_ipv4(domain: &str, host: &str, ip: &Ipv4Addr) -> Result<()
         rrset_values: vec![ip.to_string()],
         rrset_ttl: Some(300),
     };
+    if config::get_config()?.dry_run.is_some_and(|b| b) {
+        info!("DRY-RUN: Would have sent {update:?} to {url}");
+        return Ok(())
+    }
     put(&url, &update).await?;
     Ok(())
 }

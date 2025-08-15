@@ -2,4 +2,5 @@
 .envrc
 /config.toml
 \#*\#
+*~
 .aider*
