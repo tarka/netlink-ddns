@@ -6,7 +6,7 @@ mod netlink;
 use std::str::FromStr;
 
 use anyhow::Result;
-use futures::stream::StreamExt;
+use futures::{lock::Mutex, stream::StreamExt};
 use tracing::{info, warn};
 use tracing_subscriber::{filter::LevelFilter, EnvFilter};
 
@@ -30,7 +30,6 @@ fn init_logging(level: &Option<String>) -> Result<()> {
     Ok(())
 }
 
-
 fn main() -> Result<()> {
     let config = config::get_config()?;
     init_logging(&config.log_level)?;
@@ -38,9 +37,11 @@ fn main() -> Result<()> {
     smol::block_on(async {
         info!("Starting...");
 
+        let dns = gandi::get_host_ipv4(&config.domain, &config.host).await?;
+        let mut upstream = Mutex::new(dns);
+
         let local = netlink::get_if_addr(&config.iface).await?;
         if let Some(lip) = local {
-            let dns = gandi::get_host_ipv4(&config.domain, &config.host).await?;
             if local != dns {
                 info!("DNS record out of date; updating");
                 gandi::set_host_ipv4(&config.domain, &config.host, &lip).await?;
@@ -56,9 +57,17 @@ fn main() -> Result<()> {
                 ChangeType::Add => {
                     let ip = message.addr;
                     info!("Received new address: {ip}");
+                    if upstream.lock().await
+                        .is_some_and(|uip| uip == ip)
+                    {
+                        info!("IP {ip} matches upstream, skipping");
+                        continue;
+                    }
+
                     info!("Setting DNS record");
                     gandi::set_host_ipv4(&config.domain, &config.host, &ip).await?;
                     info!("DNS Set");
+                    *upstream.get_mut() = Some(ip);
                 }
                 ChangeType::Del => {
                     let ip = message.addr;
