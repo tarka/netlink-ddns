@@ -124,6 +124,7 @@ where
     Ok(())
 }
 
+#[allow(dead_code)]
 pub async fn get_records(domain: &str) -> Result<Vec<Record>> {
     let url = format!("{API_BASE}/domains/{domain}/records");
     let recs = get(&url).await?

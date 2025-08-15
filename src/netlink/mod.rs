@@ -13,7 +13,7 @@ use rtnetlink::{
     },
     sys::SmolSocket
 };
-use tracing::{debug, info, warn};
+use tracing::{debug, warn};
 
 #[derive(Debug)]
 pub enum ChangeType {
@@ -24,6 +24,7 @@ pub enum ChangeType {
 #[derive(Debug)]
 pub struct IpAddrChange {
     pub ctype: ChangeType,
+    #[allow(dead_code)]
     pub iface: String,
     pub addr: Ipv4Addr,
 }
@@ -139,14 +140,14 @@ fn is_our_if(ifname: &str, addr: &AddressMessage) -> bool {
                 _ => None,
             }
         })
-        .map_or(false, |nif| nif == ifname)
+        .is_some_and(|nif| nif == ifname)
 }
 
 fn get_ip(amsg: &AddressMessage) -> Option<Ipv4Addr> {
     let v4s = amsg.attributes.iter()
         .filter_map(|attr| {
             match attr {
-                AddressAttribute::Address(IpAddr::V4(ip)) => Some(ip.clone()),
+                AddressAttribute::Address(IpAddr::V4(ip)) => Some(*ip),
                 _ => None,
             }
         })

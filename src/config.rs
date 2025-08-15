@@ -2,7 +2,6 @@
 use std::env;
 
 use anyhow::Result;
-use config;
 use once_cell::sync::OnceCell;
 use serde::Deserialize;
 
