@@ -13,7 +13,7 @@ use rtnetlink::{
     },
     sys::SmolSocket
 };
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 #[derive(Debug)]
 pub enum ChangeType {
@@ -110,7 +110,7 @@ pub async fn ipv4_addr_stream(ifname: &'static str) -> Result<UnboundedReceiver<
         while let Some((message, _)) = nlmsgs.next().await {
             match message.payload {
                 NetlinkPayload::InnerMessage(msg) => {
-                    info!("Got payload: {msg:?}");
+                    debug!("Got payload: {msg:?}");
                     if let Some(m) = filter_msg(ifname, msg) {
                         tx.send(m).await.unwrap();
                     }
@@ -156,7 +156,7 @@ fn get_ip(amsg: &AddressMessage) -> Option<Ipv4Addr> {
         0 => None,
         1 => Some(v4s[0]),
         _ => {
-            warn!("More that 1 IPv4 address found; not updating: {v4s:#?}");
+            warn!("More that 1 IPv4 address found; not updating: {v4s:?}");
             None
         }
     }
@@ -185,7 +185,7 @@ fn filter_msg(ifname: &str, msg: RouteNetlinkMessage) -> Option<IpAddrChange> {
                 })
         }
         _ => {
-            warn!("Unexpected RouteNetlinkMessage: {msg:#?}");
+            warn!("Unexpected RouteNetlinkMessage: {msg:?}");
             None
         }
     }
