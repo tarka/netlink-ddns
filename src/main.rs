@@ -38,7 +38,7 @@ fn main() -> Result<()> {
         info!("Starting...");
 
         let dns = gandi::get_host_ipv4(&config.domain, &config.host).await?;
-        let mut upstream = Mutex::new(dns);
+        let mut upstream = dns;
 
         let local = netlink::get_if_addr(&config.iface).await?;
         if let Some(lip) = local {
@@ -57,8 +57,7 @@ fn main() -> Result<()> {
                 ChangeType::Add => {
                     let ip = message.addr;
                     info!("Received new address: {ip}");
-                    if upstream.lock().await
-                        .is_some_and(|uip| uip == ip)
+                    if upstream.is_some_and(|uip| uip == ip)
                     {
                         info!("IP {ip} matches upstream, skipping");
                         continue;
@@ -67,7 +66,7 @@ fn main() -> Result<()> {
                     info!("Setting DNS record");
                     gandi::set_host_ipv4(&config.domain, &config.host, &ip).await?;
                     info!("DNS Set");
-                    *upstream.get_mut() = Some(ip);
+                    upstream = Some(ip);
                 }
                 ChangeType::Del => {
                     let ip = message.addr;
