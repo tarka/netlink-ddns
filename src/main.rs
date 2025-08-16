@@ -6,9 +6,9 @@ mod netlink;
 use std::str::FromStr;
 
 use anyhow::Result;
-use futures::{lock::Mutex, stream::StreamExt};
+use futures::stream::StreamExt;
 use tracing::{info, warn};
-use tracing_subscriber::{filter::LevelFilter, EnvFilter};
+use tracing_subscriber::{EnvFilter, filter::LevelFilter};
 
 use crate::netlink::ChangeType;
 

@@ -3,15 +3,21 @@ use std::{
     net::{IpAddr, Ipv4Addr},
 };
 
-use anyhow::{Context, Result, bail};
-use futures::{channel::mpsc::{unbounded, UnboundedReceiver}, stream, SinkExt, StreamExt, TryStreamExt};
+use anyhow::{bail, Context, Result};
+use futures::{
+    channel::mpsc::{unbounded, UnboundedReceiver},
+    stream, SinkExt, StreamExt, TryStreamExt,
+};
 use netlink_sys::{AsyncSocket, SocketAddr};
 use rtnetlink::{
-    constants::RTMGRP_IPV4_IFADDR, new_connection_with_socket,
-    packet_core::NetlinkPayload, packet_route::{
-        address::{AddressAttribute, AddressMessage}, AddressFamily, RouteNetlinkMessage
+    constants::RTMGRP_IPV4_IFADDR,
+    new_connection_with_socket,
+    packet_core::NetlinkPayload,
+    packet_route::{
+        address::{AddressAttribute, AddressMessage},
+        AddressFamily, RouteNetlinkMessage,
     },
-    sys::SmolSocket
+    sys::SmolSocket,
 };
 use tracing::{debug, warn};
 
