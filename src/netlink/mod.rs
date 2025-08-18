@@ -21,20 +21,50 @@ use rtnetlink::{
 };
 use tracing::{debug, warn};
 
+/// Represents the type of IP address change.
 #[derive(Debug)]
 pub enum ChangeType {
+    /// An IP address was added to the interface
     Add,
+    /// An IP address was removed from the interface
     Del,
 }
 
+/// Represents a change in IP address on a network interface.
 #[derive(Debug)]
 pub struct IpAddrChange {
+    /// The type of change (addition or deletion)
     pub ctype: ChangeType,
+    /// The name of the network interface where the change occurred
     #[allow(dead_code)]
     pub iface: String,
+    /// The IPv4 address that was added or removed
     pub addr: Ipv4Addr,
 }
 
+/// Retrieves the IPv4 address of a network interface.
+///
+/// This function queries the system for the IPv4 address assigned to the specified
+/// network interface. It returns `None` if no IPv4 address is found, or an error
+/// if multiple IPv4 addresses are found or if the interface doesn't exist.
+///
+/// # Arguments
+///
+/// * `ifname` - The name of the network interface to query (e.g., "eth0", "wlan0")
+///
+/// # Returns
+///
+/// Returns a `Result` containing an `Option<Ipv4Addr>`:
+/// * `Ok(Some(addr))` - Successfully retrieved the IPv4 address
+/// * `Ok(None)` - No IPv4 address found for the interface
+/// * `Err(...)` - An error occurred (interface not found, multiple addresses, etc.)
+///
+/// # Errors
+///
+/// This function will return an error if:
+/// * The specified interface doesn't exist
+/// * Multiple IPv4 addresses are found on the interface
+/// * Other system-level errors occur during the query
 pub(crate) async fn get_if_addr(ifname: &str) -> Result<Option<Ipv4Addr>> {
     let (connection, handle, _msgs) =
         new_connection_with_socket::<SmolSocket>()?;
@@ -98,6 +128,31 @@ pub(crate) async fn get_if_addr(ifname: &str) -> Result<Option<Ipv4Addr>> {
     }
 }
 
+/// Creates a stream that monitors IPv4 address changes on a specific network interface.
+///
+/// This function sets up a netlink socket to listen for IPv4 address additions and deletions
+/// on the specified interface. It returns an unbounded receiver that will receive
+/// `IpAddrChange` notifications when addresses are added or removed.
+///
+/// # Arguments
+///
+/// * `ifname` - The name of the network interface to monitor (e.g., "eth0", "wlan0")
+///
+/// # Returns
+///
+/// Returns a `Result` containing an `UnboundedReceiver<IpAddrChange>` that will receive
+/// notifications about IP address changes, or an error if the netlink connection fails.
+///
+/// # Example
+///
+/// ```rust
+/// use netlink_ddns::netlink::ipv4_addr_stream;
+///
+/// # async fn example() -> anyhow::Result<()> {
+/// let stream = ipv4_addr_stream("eth0").await?;
+/// # Ok(())
+/// # }
+/// ```
 pub async fn ipv4_addr_stream(ifname: &'static str) -> Result<UnboundedReceiver<IpAddrChange>> {
     let addr = SocketAddr::new(0, RTMGRP_IPV4_IFADDR);
 
