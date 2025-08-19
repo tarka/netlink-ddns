@@ -42,32 +42,6 @@ fn get_auth() -> Result<String> {
     Ok(auth)
 }
 
-async fn put<T>(url: &str, obj: &T) -> Result<()>
-where
-    T: Serialize,
-{
-    let body = serde_json::to_string(obj)?;
-    let req = Request::put(url)
-        .header(HOST, API_HOST)
-        .header(CONTENT_TYPE, "application/json")
-        .header(ACCEPT, "application/json")
-        .header(AUTHORIZATION, get_auth()?)
-        .body(body)?;
-
-    let res = http::request(API_HOST, req).await?;
-
-    if !res.status().is_success() {
-        let code = res.status();
-        let body = res.collect().await?
-            .aggregate();
-        let err: Error = serde_json::from_reader(body.reader())?;
-        error!("Gandi update failed: {} {}", code, err.message);
-        bail!("Gandi update failed: {} {}", code, err.message);
-    }
-
-    Ok(())
-}
-
 #[allow(dead_code)]
 pub async fn get_records(domain: &str) -> Result<Vec<Record>> {
     let url = format!("{API_BASE}/domains/{domain}/records");
@@ -101,6 +75,7 @@ pub async fn get_host_ipv4(domain: &str, host: &str) -> Result<Option<Ipv4Addr>>
 
 pub async fn set_host_ipv4(domain: &str, host: &str, ip: &Ipv4Addr) -> Result<()> {
     let url = format!("{API_BASE}/domains/{domain}/records/{host}/A");
+
     let update = RecordUpdate {
         rrset_values: vec![ip.to_string()],
         rrset_ttl: Some(300),
@@ -109,7 +84,7 @@ pub async fn set_host_ipv4(domain: &str, host: &str, ip: &Ipv4Addr) -> Result<()
         info!("DRY-RUN: Would have sent {update:?} to {url}");
         return Ok(())
     }
-    put(&url, &update).await?;
+    http::put::<RecordUpdate, types::Error>(API_HOST, &url, Some(get_auth()?), &update).await?;
     Ok(())
 }
 

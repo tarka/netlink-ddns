@@ -87,3 +87,32 @@ where
         }
     }
 }
+
+
+pub async fn put<T, E>(host: &'static str, url: &str, auth: Option<String>, obj: &T) -> Result<()>
+where
+    T: Serialize,
+    E: DeserializeOwned + Debug,
+{
+    let body = serde_json::to_string(obj)?;
+    let mut req = Request::put(url)
+        .header(HOST, host)
+        .header(CONTENT_TYPE, "application/json")
+        .header(ACCEPT, "application/json");
+    if let Some(auth) = auth {
+        req = req.header(AUTHORIZATION, auth);
+    }
+
+    let res = request(host, req.body(body)?).await?;
+
+    if !res.status().is_success() {
+        let code = res.status();
+        let body = res.collect().await?
+            .aggregate();
+        let err: E = serde_json::from_reader(body.reader())?;
+        error!("Gandi update failed: {code} {err:?}");
+        bail!("Gandi update failed: {code} {err:?}");
+    }
+
+    Ok(())
+}
