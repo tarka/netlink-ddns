@@ -24,6 +24,7 @@ use tracing::{debug, error, info, warn};
 use types::{Error, Record, RecordUpdate};
 
 use crate::config;
+use crate::http;
 
 const API_HOST: &str = "api.gandi.net";
 const API_BASE: &str = "/v5/livedns";
@@ -41,73 +42,6 @@ fn get_auth() -> Result<String> {
     Ok(auth)
 }
 
-fn load_system_certs() -> RootCertStore {
-    let mut root_store = RootCertStore::empty();
-    root_store.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
-    root_store
-}
-
-async fn request(req: Request<String>) -> Result<Response<Incoming>> {
-    let addr = format!("{API_HOST}:443");
-    let stream = TcpStream::connect(addr).await?;
-
-    let cert_store = load_system_certs();
-    let tlsdomain = ServerName::try_from(API_HOST)?;
-    let tlsconf = ClientConfig::builder()
-        .with_root_certificates(cert_store)
-        .with_no_client_auth();
-    let tlsconn = TlsConnector::from(Arc::new(tlsconf));
-    let tlsstream = tlsconn.connect(tlsdomain, stream).await?;
-
-    let (mut sender, conn) = http1::handshake(FuturesIo::new(tlsstream)).await?;
-
-    smol::spawn(async move {
-        if let Err(e) = conn.await {
-            error!("Connection failed: {:?}", e);
-        }
-    }).detach();
-
-    let res = sender.send_request(req).await?;
-
-    Ok(res)
-}
-
-async fn get<T>(endpoint: &String) -> Result<Option<T>>
-where
-    T: DeserializeOwned,
-{
-    debug!("Request https://{API_HOST}{endpoint}");
-    let req = Request::get(endpoint)
-        .header(HOST, API_HOST)
-        .header(AUTHORIZATION, get_auth()?)
-        .header(ACCEPT, "application/json")
-        .body(String::new())?;
-
-    let res = request(req).await?;
-
-    match res.status() {
-        StatusCode::OK => {
-            // Asynchronously aggregate the chunks of the body
-            let body = res.collect().await?
-                .aggregate();
-            let obj: T = serde_json::from_reader(body.reader())?;
-
-            Ok(Some(obj))
-        }
-        StatusCode::NOT_FOUND => {
-            warn!("Gandi record doesn't exist: {}", endpoint);
-            Ok(None)
-        }
-        _ => {
-            let body = res.collect().await?
-                .aggregate();
-            let err: Error = serde_json::from_reader(body.reader())?;
-            error!("Gandi lookup failed: {}", err.message);
-            bail!("Gandi lookup failed: {}", err.message);
-        }
-    }
-}
-
 async fn put<T>(url: &str, obj: &T) -> Result<()>
 where
     T: Serialize,
@@ -120,7 +54,7 @@ where
         .header(AUTHORIZATION, get_auth()?)
         .body(body)?;
 
-    let res = request(req).await?;
+    let res = http::request(API_HOST, req).await?;
 
     if !res.status().is_success() {
         let code = res.status();
@@ -137,14 +71,14 @@ where
 #[allow(dead_code)]
 pub async fn get_records(domain: &str) -> Result<Vec<Record>> {
     let url = format!("{API_BASE}/domains/{domain}/records");
-    let recs = get(&url).await?
+    let recs = http::get::<Vec<Record>, types::Error>(API_HOST, &url, Some(get_auth()?)).await?
         .unwrap_or(vec![]);
     Ok(recs)
 }
 
 pub async fn get_host_ipv4(domain: &str, host: &str) -> Result<Option<Ipv4Addr>> {
     let url = format!("{API_BASE}/domains/{domain}/records/{host}/A");
-    let rec: Record = match get(&url).await? {
+    let rec: Record = match http::get::<Record, types::Error>(API_HOST, &url, Some(get_auth()?)).await? {
         Some(rec) => rec,
         None => return Ok(None)
     };

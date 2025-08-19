@@ -1,6 +1,7 @@
 
 mod config;
 mod gandi;
+mod http;
 mod netlink;
 
 use std::str::FromStr;
