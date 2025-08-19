@@ -1,27 +1,12 @@
 
 mod types;
 
-use std::{net::Ipv4Addr, sync::Arc};
+use std::net::Ipv4Addr;
 
 use anyhow::{bail, Result};
-use futures_rustls::{
-    pki_types::ServerName,
-    rustls::{ClientConfig, RootCertStore},
-    TlsConnector,
-};
-use http_body_util::BodyExt;
-use hyper::{
-    body::{Buf, Incoming},
-    client::conn::http1,
-    header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE, HOST},
-    Request, Response, StatusCode,
-};
-use serde::{de::DeserializeOwned, Serialize};
-use smol::net::TcpStream;
-use smol_hyper::rt::FuturesIo;
-use tracing::{debug, error, info, warn};
+use tracing::{error, info, warn};
 
-use types::{Error, Record, RecordUpdate};
+use types::{Record, RecordUpdate};
 
 use crate::config;
 use crate::http;
