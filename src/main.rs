@@ -54,16 +54,14 @@ fn main() -> Result<()> {
     smol::block_on(async {
         info!("Waiting for {} to come up...", config.iface);
 
-        let local = {
-            loop {
-                let attempt = netlink::get_if_addr(&config.iface).await;
-                if let Ok(Some(ip)) = attempt {
-                    info!("IP Addr valid on {}", config.iface);
-                    break ip;
-                }
-                warn!("Error getting IP: {attempt:?}; sleeping");
-                smol::Timer::after(Duration::from_secs(10)).await;
+        let local = loop {
+            let attempt = netlink::get_if_addr(&config.iface).await;
+            if let Ok(Some(ip)) = attempt {
+                info!("IP Addr valid on {}", config.iface);
+                break ip;
             }
+            warn!("Error getting IP: {attempt:?}; sleeping");
+            smol::Timer::after(Duration::from_secs(10)).await;
         };
 
         let mut upstream = gandi::get_host_ipv4(&config.domain, &config.host).await?;
