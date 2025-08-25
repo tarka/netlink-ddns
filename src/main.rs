@@ -19,7 +19,7 @@ mod gandi;
 mod http;
 mod netlink;
 
-use std::str::FromStr;
+use std::{str::FromStr, time::Duration};
 
 use anyhow::Result;
 use futures::stream::StreamExt;
@@ -49,21 +49,28 @@ fn init_logging(level: &Option<String>) -> Result<()> {
 fn main() -> Result<()> {
     let config = config::get_config()?;
     init_logging(&config.log_level)?;
+    info!("Starting...");
 
     smol::block_on(async {
-        info!("Starting...");
+        info!("Waiting for {} to come up...", config.iface);
 
-        let dns = gandi::get_host_ipv4(&config.domain, &config.host).await?;
-        let mut upstream = dns;
-
-        let local = netlink::get_if_addr(&config.iface).await?;
-        if let Some(lip) = local {
-            if local != dns {
-                info!("DNS record out of date; updating");
-                gandi::set_host_ipv4(&config.domain, &config.host, &lip).await?;
+        let local = {
+            loop {
+                let attempt = netlink::get_if_addr(&config.iface).await;
+                if let Ok(Some(ip)) = attempt {
+                    info!("IP Addr valid on {}", config.iface);
+                    break ip;
+                }
+                warn!("Error getting IP: {attempt:?}; sleeping");
+                smol::Timer::after(Duration::from_secs(10)).await;
             }
-        } else {
-            warn!("No local address currently set");
+        };
+
+        let mut upstream = gandi::get_host_ipv4(&config.domain, &config.host).await?;
+
+        if Some(local) != upstream {
+            info!("DNS record out of date; updating");
+            gandi::set_host_ipv4(&config.domain, &config.host, &local).await?;
         }
 
         info!("Starting monitoring stream");
