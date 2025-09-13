@@ -93,56 +93,65 @@ mod tests {
     use super::*;
     use macro_rules_attribute::apply;
     use smol_macros::test;
+    use temp_env::async_with_vars;
     use tracing_test::traced_test;
 
     #[apply(test!)]
     #[traced_test]
     #[cfg_attr(not(feature = "test_gandi"), ignore = "Gandi API test")]
     async fn test_fetch_records() -> Result<()> {
-        let recs = get_records("haltcondition.net").await?;
-        assert!(recs.len() > 0);
-        Ok(())
+        async_with_vars([("NLDDNS_CONFIG", Some("config.toml"))], async  {
+            let recs = get_records("haltcondition.net").await?;
+            assert!(recs.len() > 0);
+            Ok(())
+        }).await
     }
 
     #[apply(test!)]
     #[traced_test]
     #[cfg_attr(not(feature = "test_gandi"), ignore = "Gandi API test")]
     async fn test_fetch_records_error() -> Result<()> {
-        let recs = get_records("not.a.real.domain.net").await?;
-        assert!(recs.is_empty());
-        Ok(())
+        async_with_vars([("NLDDNS_CONFIG", Some("config.toml"))], async  {
+            let recs = get_records("not.a.real.domain.net").await?;
+            assert!(recs.is_empty());
+            Ok(())
+        }).await
     }
 
     #[apply(test!)]
     #[traced_test]
     #[cfg_attr(not(feature = "test_gandi"), ignore = "Gandi API test")]
     async fn test_fetch_ipv4() -> Result<()> {
-        let ip = get_host_ipv4("haltcondition.net", "janus").await?;
-        assert!(ip.is_some());
-        assert_eq!(Ipv4Addr::new(192,168,42,1), ip.unwrap());
-        Ok(())
+        async_with_vars([("NLDDNS_CONFIG", Some("config.toml"))], async  {
+            let ip = get_host_ipv4("haltcondition.net", "janus").await?;
+            assert!(ip.is_some());
+            assert_eq!(Ipv4Addr::new(192,168,42,1), ip.unwrap());
+            Ok(())
+        }).await
     }
 
     #[apply(test!)]
     #[traced_test]
     #[cfg_attr(not(feature = "test_gandi"), ignore = "Gandi API test")]
     async fn test_update_ipv4() -> Result<()> {
-        let cur = get_host_ipv4("haltcondition.net", "test").await?
-            .unwrap_or(Ipv4Addr::new(1,1,1,1));
-        let next = cur.octets()[0]
-            .wrapping_add(1);
+        async_with_vars([("NLDDNS_CONFIG", Some("config.toml"))], async  {
+            let cur = get_host_ipv4("haltcondition.net", "test").await?
+                .unwrap_or(Ipv4Addr::new(1,1,1,1));
+            let next = cur.octets()[0]
+                .wrapping_add(1);
 
-        let nip = Ipv4Addr::new(next,next,next,next);
-        set_host_ipv4("haltcondition.net", "test", &nip).await?;
+            let nip = Ipv4Addr::new(next,next,next,next);
+            set_host_ipv4("haltcondition.net", "test", &nip).await?;
 
-        let ip = get_host_ipv4("haltcondition.net", "test").await?;
-        if let Some(ip) = ip {
-            assert_eq!(nip, ip);
-        } else {
-            assert!(false, "No updated IP found");
-        }
+            let ip = get_host_ipv4("haltcondition.net", "test").await?;
+            if let Some(ip) = ip {
+                assert_eq!(nip, ip);
+            } else {
+                assert!(false, "No updated IP found");
+            }
 
-        Ok(())
+            Ok(())
+        }).await
     }
 
 }
