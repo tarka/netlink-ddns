@@ -89,6 +89,8 @@ fn main() -> Result<()> {
         if Some(local) != upstream {
             info!("DNS record out of date; updating");
             gandi.set_v4_record(&config.host, &local).await?;
+        } else {
+            info!("DN record is up-to-date: {local}");
         }
 
         info!("Starting monitoring stream");
