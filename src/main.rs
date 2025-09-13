@@ -84,6 +84,7 @@ fn main() -> Result<()> {
             smol::Timer::after(Duration::from_secs(10)).await;
         };
 
+        info!("Fetching published DNS record");
         let mut upstream = gandi.get_v4_record(&config.host).await?;
 
         if Some(local) != upstream {
