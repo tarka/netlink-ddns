@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.100"
 config = { version = "0.15.16", default-features = false, features = ["toml"] }
-dns-edit = "0.2.0"
+dns-edit = { version = "0.2.1", features = ["smol", "gandi"], default-features = false }
 futures = { version = "0.3.31", default-features = false }
 netlink-sys = { version = "0.8.7", features = ["smol_socket"] }
 once_cell = "1.21.3"
