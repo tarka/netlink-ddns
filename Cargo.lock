@@ -230,9 +230,9 @@ checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 
 [[package]]
 name = "aws-lc-rs"
-version = "1.14.0"
+version = "1.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94b8ff6c09cd57b16da53641caa860168b88c172a5ee163b0288d3d6eea12786"
+checksum = "879b6c89592deb404ba4dc0ae6b58ffd1795c78991cbb5b8bc441c48a070440d"
 dependencies = [
  "aws-lc-sys",
  "zeroize",
@@ -240,15 +240,16 @@ dependencies = [
 
 [[package]]
 name = "aws-lc-sys"
-version = "0.31.0"
+version = "0.32.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e44d16778acaf6a9ec9899b92cebd65580b83f685446bf2e1f5d3d732f99dcd"
+checksum = "ee74396bee4da70c2e27cf94762714c911725efe69d9e2672f998512a67a4ce4"
 dependencies = [
  "bindgen",
  "cc",
  "cmake",
  "dunce",
  "fs_extra",
+ "libloading",
 ]
 
 [[package]]
@@ -391,9 +392,9 @@ dependencies = [
 
 [[package]]
 name = "config"
-version = "0.15.16"
+version = "0.15.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cef036f0ecf99baef11555578630e2cca559909b4c50822dbba828c252d21c49"
+checksum = "680d3ac2fe066c43300ec831c978871e50113a708d58ab13d231bd92deca5adb"
 dependencies = [
  "pathdiff",
  "serde_core",
@@ -406,31 +407,6 @@ name = "crossbeam-utils"
 version = "0.8.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d0a5c400df2834b80a4c3327b3aad3a4c4cd4de0629063962b03235697506a28"
-
-[[package]]
-name = "dns-edit"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f37db7f7927f30b048ce75e6aff1e37c62ce0a619c01ed7c061fc55e885687d"
-dependencies = [
- "async-lock",
- "cfg-if",
- "chrono",
- "futures-rustls",
- "http",
- "http-body-util",
- "hyper",
- "rustls",
- "serde",
- "serde_json",
- "smol",
- "smol-hyper",
- "thiserror 2.0.16",
- "tracing",
- "tracing-log",
- "trait-variant",
- "webpki-roots",
-]
 
 [[package]]
 name = "dunce"
@@ -833,12 +809,12 @@ checksum = "6a82ae493e598baaea5209805c49bbf2ea7de956d50d7da0da1164f9c6d28543"
 
 [[package]]
 name = "libloading"
-version = "0.8.9"
+version = "0.8.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7c4b02199fee7c5d21a5ae7d8cfa79a6ef5bb2fc834d6e9058e89c825efdc55"
+checksum = "07033963ba89ebaf1584d767badaa2e8fcec21aedea6b8c0346d487d49c28667"
 dependencies = [
  "cfg-if",
- "windows-link 0.2.0",
+ "windows-targets 0.53.3",
 ]
 
 [[package]]
@@ -926,7 +902,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "config",
- "dns-edit",
  "futures",
  "macro_rules_attribute",
  "netlink-sys",
@@ -941,6 +916,7 @@ dependencies = [
  "tracing-log",
  "tracing-subscriber",
  "tracing-test",
+ "zone-edit",
 ]
 
 [[package]]
@@ -1357,11 +1333,11 @@ dependencies = [
 
 [[package]]
 name = "serde_spanned"
-version = "1.0.0"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "40734c41988f7306bb04f0ecf60ec0f3f1caa34290e4e8ea471dcd3346483b83"
+checksum = "5417783452c2be558477e104686f7de5dae53dba813c28435e0e70f82d9b04ee"
 dependencies = [
- "serde",
+ "serde_core",
 ]
 
 [[package]]
@@ -1571,11 +1547,11 @@ dependencies = [
 
 [[package]]
 name = "toml"
-version = "0.9.5"
+version = "0.9.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75129e1dc5000bfbaa9fee9d1b21f974f9fbad9daec557a521ee6e080825f6e8"
+checksum = "00e5e5d9bf2475ac9d4f0d9edab68cc573dc2fd644b0dba36b0c30a92dd9eaa0"
 dependencies = [
- "serde",
+ "serde_core",
  "serde_spanned",
  "toml_datetime",
  "toml_parser",
@@ -1584,18 +1560,18 @@ dependencies = [
 
 [[package]]
 name = "toml_datetime"
-version = "0.7.0"
+version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bade1c3e902f58d73d3f294cd7f20391c1cb2fbcb643b73566bc773971df91e3"
+checksum = "32f1085dec27c2b6632b04c80b3bb1b4300d6495d1e129693bdda7d91e72eec1"
 dependencies = [
- "serde",
+ "serde_core",
 ]
 
 [[package]]
 name = "toml_parser"
-version = "1.0.2"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b551886f449aa90d4fe2bdaa9f4a2577ad2dde302c61ecf262d80b116db95c10"
+checksum = "4cf893c33be71572e0e9aa6dd15e6677937abd686b066eac3f8cd3531688a627"
 dependencies = [
  "winnow",
 ]
@@ -1962,3 +1938,28 @@ name = "zeroize"
 version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ced3678a2879b30306d323f4542626697a464a97c0a07c9aebf7ebca65cd4dde"
+
+[[package]]
+name = "zone-edit"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a7a35862b047a22ecab2ffb662370642a3d5edac704b209e003cfe98ce6141e"
+dependencies = [
+ "async-lock",
+ "cfg-if",
+ "chrono",
+ "futures-rustls",
+ "http",
+ "http-body-util",
+ "hyper",
+ "rustls",
+ "serde",
+ "serde_json",
+ "smol",
+ "smol-hyper",
+ "thiserror 2.0.16",
+ "tracing",
+ "tracing-log",
+ "trait-variant",
+ "webpki-roots",
+]

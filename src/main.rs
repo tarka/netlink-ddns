@@ -20,8 +20,7 @@ mod netlink;
 use std::{str::FromStr, time::Duration};
 
 use anyhow::{bail, Result};
-use dns_edit::DnsProvider;
-use dns_edit::gandi::{Auth, Gandi};
+use zone_edit::{DnsProvider, gandi::{Auth, Gandi}};
 use futures::stream::StreamExt;
 use tracing::{error, info, warn};
 use tracing_subscriber::{EnvFilter, filter::LevelFilter};
@@ -64,7 +63,7 @@ fn main() -> Result<()> {
     init_logging(&config.log_level)?;
     info!("Starting...");
 
-    let dns_conf = dns_edit::Config {
+    let dns_conf = zone_edit::Config {
         domain: config.domain.clone(),
         dry_run: config.dry_run.unwrap_or(false),
     };
