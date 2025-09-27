@@ -84,15 +84,15 @@ fn main() -> Result<()> {
         };
 
         info!("Fetching published DNS record");
-        let mut upstream = gandi.get_v4_record(&config.host).await?;
+        let mut upstream = gandi.get_a_record(&config.host).await?;
 
         if upstream.is_none()  {
             info!("No existing DNS record; creating");
-            gandi.create_v4_record(&config.host, &local).await?;
+            gandi.create_a_record(&config.host, &local).await?;
 
         } else if Some(local) != upstream {
             info!("DNS record out of date; updating");
-            gandi.update_v4_record(&config.host, &local).await?;
+            gandi.update_a_record(&config.host, &local).await?;
 
         } else {
             info!("DNS record is up-to-date: {local}");
@@ -112,7 +112,7 @@ fn main() -> Result<()> {
                     }
 
                     info!("Setting DNS record");
-                    gandi.update_v4_record(&config.host, &ip).await?;
+                    gandi.update_a_record(&config.host, &ip).await?;
                     info!("DNS Set");
                     upstream = Some(ip);
                 }
