@@ -20,7 +20,7 @@ mod netlink;
 use std::{str::FromStr, time::Duration};
 
 use anyhow::{bail, Result};
-use zone_edit::{DnsProvider, gandi::{Auth, Gandi}};
+use zone_edit::async_impl::{AsyncDnsProvider, gandi::{Auth, Gandi}};
 use futures::stream::StreamExt;
 use tracing::{error, info, warn};
 use tracing_subscriber::{EnvFilter, filter::LevelFilter};
