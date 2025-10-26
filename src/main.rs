@@ -58,8 +58,9 @@ fn get_auth(config: &Config) -> Result<Auth> {
 }
 
 fn main() -> Result<()> {
-    let cli = CliOptions::from_args();
+    let cli = CliOptions::from_args()?;
     let config = config::get_config(&cli)?;
+
     init_logging(&config.log_level)?;
     info!("Starting...");
 
