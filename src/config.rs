@@ -14,15 +14,39 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::env;
+use std::path::PathBuf;
 
 use anyhow::Result;
+use clap::Parser;
 use once_cell::sync::OnceCell;
 use serde::Deserialize;
 
 // FIXME: Use OnceCell lib for now until OnceLock::get_or_try_init()
 // stablises.
 static CONFIG: OnceCell<Config> = OnceCell::new();
+
+#[derive(Clone, Debug, Parser)]
+#[command(
+    name = "netlink-ddns",
+    about = "A small DDNS updater for Linux.",
+    version,
+)]
+pub struct CliOptions {
+    /// Config file
+    ///
+    /// Override the config file location
+    #[arg(short = 'c', long)]
+    pub config: Option<PathBuf>,
+}
+
+impl CliOptions {
+    pub fn from_args() -> CliOptions {
+        CliOptions::parse()
+    }
+}
+
+pub const DEFAULT_CONFIG_FILE: &str = "/etc/netlink-dns/config.toml";
+
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
@@ -35,14 +59,12 @@ pub struct Config {
     pub dry_run: Option<bool>,
 }
 
-pub fn get_config() -> Result<&'static Config> {
+pub fn get_config(cli: &CliOptions) -> Result<&'static Config> {
     CONFIG.get_or_try_init(|| {
-        let confile = env::var("NLDDNS_CONFIG")
-            .unwrap_or("/etc/netlink-ddns/config.toml".to_string());
+        let confile = cli.config.clone()
+            .unwrap_or(PathBuf::from(DEFAULT_CONFIG_FILE));
 
-        let conf = config::Config::builder()
-            .add_source(config::File::with_name(&confile))
-            .build()?;
+        let conf = config::Config::try_from(&confile)?;
 
         let s_conf = conf.try_deserialize()?;
         Ok(s_conf)
