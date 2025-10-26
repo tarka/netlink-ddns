@@ -1,6 +1,6 @@
 /target
 .envrc
 /config.toml
+/config.corn
 \#*\#
 *~
-.aider*

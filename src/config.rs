@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::path::PathBuf;
+
 use anyhow::Result;
 use once_cell::sync::OnceCell;
 use pico_args::Arguments;
@@ -57,10 +59,10 @@ pub struct Config {
     pub dry_run: Option<bool>,
 }
 
-pub fn get_config(cli: &CliOptions) -> Result<&'static Config> {
+pub fn get_config(cli_file: &Option<String>) -> Result<&'static Config> {
     CONFIG.get_or_try_init(|| {
 
-        let confile = cli.config.clone()
+        let confile = cli_file.clone()
             .unwrap_or(DEFAULT_CONFIG_FILE.to_owned());
 
         let conf = config::Config::builder()

@@ -15,17 +15,18 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 mod config;
+mod ddns;
 mod netlink;
 
 use std::{str::FromStr, time::Duration};
 
-use anyhow::{bail, Result};
-use zone_update::async_impl::{AsyncDnsProvider, gandi::{Auth, Gandi}};
+use anyhow::Result;
+use zone_update::async_impl::AsyncDnsProvider;
 use futures::stream::StreamExt;
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 use tracing_subscriber::{EnvFilter, filter::LevelFilter};
 
-use crate::{config::{CliOptions, Config}, netlink::ChangeType};
+use crate::{config::CliOptions, ddns::get_dns_provider, netlink::ChangeType};
 
 fn init_logging(level: &Option<String>) -> Result<()> {
     let lf = level.clone()
@@ -45,31 +46,13 @@ fn init_logging(level: &Option<String>) -> Result<()> {
     Ok(())
 }
 
-fn get_auth(config: &Config) -> Result<Auth> {
-    let auth = if let Some(key) = &config.gandi_api_key {
-        Auth::ApiKey(key.clone())
-    } else if let Some(key) = &config.gandi_pat_key {
-        Auth::PatKey(key.clone())
-    } else {
-        error!("No Gandi key set");
-        bail!("No Gandi key set");
-    };
-    Ok(auth)
-}
-
 fn main() -> Result<()> {
     let cli = CliOptions::from_args()?;
-    let config = config::get_config(&cli)?;
-
+    let config = config::get_config(&cli.config)?;
     init_logging(&config.log_level)?;
     info!("Starting...");
 
-    let dns_conf = zone_update::Config {
-        domain: config.domain.clone(),
-        dry_run: config.dry_run.unwrap_or(false),
-    };
-
-    let gandi = Gandi::new(dns_conf, get_auth(&config)?);
+    let ddns = get_dns_provider(&config)?;
 
     smol::block_on(async {
         info!("Waiting for {} to come up...", config.iface);
@@ -85,15 +68,15 @@ fn main() -> Result<()> {
         };
 
         info!("Fetching published DNS record");
-        let mut upstream = gandi.get_a_record(&config.host).await?;
+        let mut upstream = ddns.get_a_record(&config.host).await?;
 
         if upstream.is_none()  {
             info!("No existing DNS record; creating");
-            gandi.create_a_record(&config.host, &local).await?;
+            ddns.create_a_record(&config.host, &local).await?;
 
         } else if Some(local) != upstream {
             info!("DNS record out of date; updating");
-            gandi.update_a_record(&config.host, &local).await?;
+            ddns.update_a_record(&config.host, &local).await?;
 
         } else {
             info!("DNS record is up-to-date: {local}");
@@ -113,7 +96,7 @@ fn main() -> Result<()> {
                     }
 
                     info!("Setting DNS record");
-                    gandi.update_a_record(&config.host, &ip).await?;
+                    ddns.update_a_record(&config.host, &ip).await?;
                     info!("DNS Set");
                     upstream = Some(ip);
                 }
