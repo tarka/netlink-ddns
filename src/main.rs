@@ -68,15 +68,15 @@ fn main() -> Result<()> {
         };
 
         info!("Fetching published DNS record");
-        let mut upstream = ddns.get_a_record(&config.host).await?;
+        let mut upstream = ddns.get_a_record(&config.ddns.host).await?;
 
         if upstream.is_none()  {
             info!("No existing DNS record; creating");
-            ddns.create_a_record(&config.host, &local).await?;
+            ddns.create_a_record(&config.ddns.host, &local).await?;
 
         } else if Some(local) != upstream {
             info!("DNS record out of date; updating");
-            ddns.update_a_record(&config.host, &local).await?;
+            ddns.update_a_record(&config.ddns.host, &local).await?;
 
         } else {
             info!("DNS record is up-to-date: {local}");
@@ -96,7 +96,7 @@ fn main() -> Result<()> {
                     }
 
                     info!("Setting DNS record");
-                    ddns.update_a_record(&config.host, &ip).await?;
+                    ddns.update_a_record(&config.ddns.host, &ip).await?;
                     info!("DNS Set");
                     upstream = Some(ip);
                 }

@@ -14,12 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::path::PathBuf;
+use std::fs::read_to_string;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use once_cell::sync::OnceCell;
 use pico_args::Arguments;
 use serde::Deserialize;
+use zone_update::{dnsimple, dnsmadeeasy, gandi, porkbun};
 
 
 #[derive(Debug)]
@@ -48,15 +49,31 @@ static CONFIG: OnceCell<Config> = OnceCell::new();
 
 pub const DEFAULT_CONFIG_FILE: &str = "/etc/netlink-dns/config.toml";
 
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "lowercase", tag = "name")]
+pub enum Providers {
+    Gandi(gandi::Auth),
+    Dnsimple(dnsimple::Auth),
+    DnsMadeEasy(dnsmadeeasy::Auth),
+    PorkBun(porkbun::Auth),
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub struct Ddns {
+    pub domain: String,
+    pub host: String,
+    pub provider: Providers,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct Config {
     pub log_level: Option<String>,
-    pub gandi_api_key: Option<String>,
-    pub gandi_pat_key: Option<String>,
-    pub domain: String,
-    pub host: String,
     pub iface: String,
-    pub dry_run: Option<bool>,
+    pub ddns: Ddns,
+    #[serde(default)]
+    pub dry_run: bool,
 }
 
 pub fn get_config(cli_file: &Option<String>) -> Result<&'static Config> {
@@ -64,12 +81,66 @@ pub fn get_config(cli_file: &Option<String>) -> Result<&'static Config> {
 
         let confile = cli_file.clone()
             .unwrap_or(DEFAULT_CONFIG_FILE.to_owned());
+        let conf_s = read_to_string(&confile)
+            .with_context(|| format!("Failed to load config from {confile}"))?;
 
-        let conf = config::Config::builder()
-            .add_source(config::File::with_name(&confile))
-            .build()?;
-
-        let s_conf = conf.try_deserialize()?;
-        Ok(s_conf)
+        let conf = corn::from_str::<Config>(&conf_s)?;
+        Ok(conf)
     })
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(Debug, Deserialize)]
+    #[serde(rename_all = "lowercase")]
+    pub struct ConfWrapper {
+        pub ddns: Ddns,
+    }
+
+    #[test]
+    fn test_tagged_provider() -> Result<()> {
+        let fragment = r#"
+            {
+                ddns = {
+                    provider = {
+                      name = "porkbun"
+                      key = "a_key"
+                      secret = "a_secret"
+                    }
+                    domain = "example.com"
+                    host = "test"
+                }
+            } "#;
+        let conf = corn::from_str::<ConfWrapper>(fragment)?;
+        assert_eq!(conf.ddns.host, "test".to_string());
+        assert_eq!(conf.ddns.domain, "example.com".to_string());
+        if let Providers::PorkBun(auth) = conf.ddns.provider {
+            assert_eq!(auth.key, "a_key".to_string());
+            assert_eq!(auth.secret, "a_secret".to_string());
+        } else {
+            panic!("Provider mismatch, should be PorkBun");
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_example_config() -> Result<()> {
+        let file = "examples/config.corn".to_owned();
+        let conf = get_config(&Some(file))?;
+
+        assert_eq!(conf.ddns.host, "test".to_string());
+        assert_eq!(conf.ddns.domain, "example.com".to_string());
+        if let Providers::PorkBun(auth) = &conf.ddns.provider {
+            assert_eq!(auth.key, "a_key".to_string());
+            assert_eq!(auth.secret, "a_secret".to_string());
+        } else {
+            panic!("Provider mismatch, should be PorkBun");
+        }
+
+        Ok(())
+    }
 }
