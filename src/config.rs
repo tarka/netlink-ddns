@@ -128,6 +128,52 @@ mod tests {
     }
 
     #[test]
+    fn test_tagged_gandi() -> Result<()> {
+        let fragment = r#"
+            {
+                ddns = {
+                    provider = {
+                      name = "gandi"
+                      apikey = "api_key"
+                    }
+                    domain = "example.com"
+                    host = "test"
+                }
+            } "#;
+        let conf = corn::from_str::<ConfWrapper>(fragment)?;
+        assert_eq!(conf.ddns.host, "test".to_string());
+        assert_eq!(conf.ddns.domain, "example.com".to_string());
+        if let Providers::Gandi(gandi::Auth::ApiKey(key)) = conf.ddns.provider {
+            assert_eq!(key, "api_key".to_string());
+        } else {
+            panic!("Provider mismatch, should be PorkBun");
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_gandi_mixed() -> Result<()> {
+        let fragment = r#"
+            {
+                ddns = {
+                    provider = {
+                      name = "gandi"
+                      // Only one variant should be allowed
+                      apikey = "api_key"
+                      patkey = "pat_key"
+                    }
+                    domain = "example.com"
+                    host = "test"
+                }
+            } "#;
+
+        let conf_r = corn::from_str::<ConfWrapper>(fragment);
+        assert!(matches!(conf_r, Err(corn::error::Error::DeserializationError(_))));
+        Ok(())
+    }
+
+    #[test]
     fn test_example_config() -> Result<()> {
         let file = "examples/config.corn".to_owned();
         let conf = get_config(&Some(file))?;
