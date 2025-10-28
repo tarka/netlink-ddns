@@ -37,6 +37,5 @@ pub fn get_dns_provider(config: &Config) -> Result<DnsProvider> {
         Providers::PorkBun(auth) => Box::new(porkbun::Porkbun::new(dns_conf, auth)),
     };
 
-
     Ok(provider)
 }

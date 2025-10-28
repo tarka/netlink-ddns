@@ -48,7 +48,7 @@ impl CliOptions {
 // stablises.
 static CONFIG: OnceCell<Config> = OnceCell::new();
 
-pub const DEFAULT_CONFIG_FILE: &str = "/etc/netlink-dns/config.toml";
+pub const DEFAULT_CONFIG_FILE: &str = "/etc/netlink-ddns/config.corn";
 
 
 #[derive(Debug, Deserialize)]
