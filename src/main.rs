@@ -21,7 +21,6 @@ mod netlink;
 use std::{str::FromStr, time::Duration};
 
 use anyhow::Result;
-use zone_update::async_impl::AsyncDnsProvider;
 use futures::stream::StreamExt;
 use tracing::{info, warn};
 use tracing_subscriber::{EnvFilter, filter::LevelFilter};

@@ -20,7 +20,8 @@ use anyhow::{Context, Result};
 use once_cell::sync::OnceCell;
 use pico_args::Arguments;
 use serde::Deserialize;
-use zone_update::{dnsimple, dnsmadeeasy, gandi, porkbun};
+
+use crate::ddns::Providers;
 
 
 #[derive(Debug)]
@@ -49,15 +50,6 @@ static CONFIG: OnceCell<Config> = OnceCell::new();
 
 pub const DEFAULT_CONFIG_FILE: &str = "/etc/netlink-dns/config.toml";
 
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "lowercase", tag = "name")]
-pub enum Providers {
-    Gandi(gandi::Auth),
-    Dnsimple(dnsimple::Auth),
-    DnsMadeEasy(dnsmadeeasy::Auth),
-    PorkBun(porkbun::Auth),
-}
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "lowercase")]
