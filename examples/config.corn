@@ -1,5 +1,6 @@
 
 let {
+  // These can also be environment variables
   $porkbun_key = "a_key"
   $porkbun_secret = "a_secret"
 

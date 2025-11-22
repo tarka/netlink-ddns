@@ -21,7 +21,7 @@ use once_cell::sync::OnceCell;
 use pico_args::Arguments;
 use serde::Deserialize;
 
-use crate::ddns::Providers;
+use zone_update::Providers;
 
 
 #[derive(Debug)]
