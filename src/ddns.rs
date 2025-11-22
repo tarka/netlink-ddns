@@ -1,5 +1,4 @@
 
-use anyhow::Result;
 use serde::Deserialize;
 use zone_update::async_impl::{
     gandi, dnsimple, dnsmadeeasy, porkbun,
@@ -20,22 +19,24 @@ pub enum Providers {
     PorkBun(porkbun::Auth),
 }
 
+impl Providers {
 
-type DnsProvider = Box<dyn AsyncDnsProvider>;
+    pub fn async_impl(&self, dns_conf: zone_update::Config) -> Box<dyn AsyncDnsProvider> {
+        match self {
+            Providers::Gandi(auth) => Box::new(gandi::Gandi::new(dns_conf, auth.clone())),
+            Providers::Dnsimple(auth) => Box::new(dnsimple::Dnsimple::new(dns_conf, auth.clone(), None)),
+            Providers::DnsMadeEasy(auth) => Box::new(dnsmadeeasy::DnsMadeEasy::new(dns_conf, auth.clone())),
+            Providers::PorkBun(auth) => Box::new(porkbun::Porkbun::new(dns_conf, auth.clone())),
+        }
+    }
+}
 
-pub fn get_dns_provider(config: &Config) -> Result<DnsProvider> {
+pub fn get_dns_provider(config: &Config) -> Box<dyn AsyncDnsProvider> {
 
     let dns_conf = zone_update::Config {
         domain: config.ddns.domain.clone(),
         dry_run: config.dry_run,
     };
 
-    let provider: DnsProvider = match config.ddns.provider.clone() {
-        Providers::Gandi(auth) => Box::new(gandi::Gandi::new(dns_conf, auth)),
-        Providers::Dnsimple(auth) => Box::new(dnsimple::Dnsimple::new(dns_conf, auth, None)),
-        Providers::DnsMadeEasy(auth) => Box::new(dnsmadeeasy::DnsMadeEasy::new(dns_conf, auth)),
-        Providers::PorkBun(auth) => Box::new(porkbun::Porkbun::new(dns_conf, auth)),
-    };
-
-    Ok(provider)
+    config.ddns.provider.async_impl(dns_conf)
 }

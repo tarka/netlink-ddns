@@ -121,6 +121,8 @@ mod tests {
 
     #[test]
     fn test_tagged_gandi() -> Result<()> {
+        use zone_update::gandi;
+
         let fragment = r#"
             {
                 ddns = {

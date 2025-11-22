@@ -51,7 +51,7 @@ fn main() -> Result<()> {
     init_logging(&config.log_level)?;
     info!("Starting...");
 
-    let ddns = get_dns_provider(&config)?;
+    let ddns = get_dns_provider(&config);
 
     smol::block_on(async {
         info!("Waiting for {} to come up...", config.iface);
