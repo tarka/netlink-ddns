@@ -21,7 +21,7 @@ use once_cell::sync::OnceCell;
 use pico_args::Arguments;
 use serde::Deserialize;
 
-use zone_update::Providers;
+use zone_update::Provider;
 
 
 #[derive(Debug)]
@@ -56,7 +56,7 @@ pub const DEFAULT_CONFIG_FILE: &str = "/etc/netlink-ddns/config.corn";
 pub struct Ddns {
     pub domain: String,
     pub host: String,
-    pub provider: Providers,
+    pub provider: Provider,
 }
 
 #[derive(Debug, Deserialize)]
@@ -109,7 +109,7 @@ mod tests {
         let conf = corn::from_str::<ConfWrapper>(fragment)?;
         assert_eq!(conf.ddns.host, "test".to_string());
         assert_eq!(conf.ddns.domain, "example.com".to_string());
-        if let Providers::PorkBun(auth) = conf.ddns.provider {
+        if let Provider::PorkBun(auth) = conf.ddns.provider {
             assert_eq!(auth.key, "a_key".to_string());
             assert_eq!(auth.secret, "a_secret".to_string());
         } else {
@@ -137,7 +137,7 @@ mod tests {
         let conf = corn::from_str::<ConfWrapper>(fragment)?;
         assert_eq!(conf.ddns.host, "test".to_string());
         assert_eq!(conf.ddns.domain, "example.com".to_string());
-        if let Providers::Gandi(gandi::Auth::ApiKey(key)) = conf.ddns.provider {
+        if let Provider::Gandi(gandi::Auth::ApiKey(key)) = conf.ddns.provider {
             assert_eq!(key, "api_key".to_string());
         } else {
             panic!("Provider mismatch, should be PorkBun");
@@ -174,7 +174,7 @@ mod tests {
 
         assert_eq!(conf.ddns.host, "test".to_string());
         assert_eq!(conf.ddns.domain, "example.com".to_string());
-        if let Providers::PorkBun(auth) = &conf.ddns.provider {
+        if let Provider::PorkBun(auth) = &conf.ddns.provider {
             assert_eq!(auth.key, "a_key".to_string());
             assert_eq!(auth.secret, "a_secret".to_string());
         } else {

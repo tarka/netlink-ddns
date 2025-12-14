@@ -13,12 +13,8 @@ upstream provider, but more can be added.
 ## Features
 
 - Real-time monitoring of network interface changes using netlink sockets
-- Automatic DNS record updates for Gandi's LiveDNS API
-- systemd service integration for easy deployment
-- Support for both API keys and Personal Access Tokens (PAT) for Gandi authentication
-- Dry-run mode for testing configurations
-- Comprehensive logging with configurable log levels
-- Written in Rust for performance and safety
+- Uses the [zone-update](https://github.com/tarka/zone-update/) library to allow
+  DNS updates for multiple DNS providers.
 
 ## Installation
 
@@ -47,13 +43,13 @@ cargo install --path .
 2. Create the configuration directory and file:
    ```bash
    sudo mkdir -p /etc/netlink-ddns
-   sudo cp tests/config.toml /etc/netlink-ddns/config.toml
-   sudo chown www-data:www-data /etc/netlink-ddns/config.toml
+   sudo cp examples/config.corn /etc/netlink-ddns/config.corn
+   sudo chown www-data:www-data /etc/netlink-ddns/config.corn
    ```
 
 3. Edit the configuration file:
    ```bash
-   sudo nano /etc/netlink-ddns/config.toml
+   sudo nano /etc/netlink-ddns/config.corn
    ```
 
 4. Install the systemd service:
@@ -70,42 +66,34 @@ cargo install --path .
 
 ## Configuration
 
-The service is configured using a TOML file. By default, it looks for the configuration at `/etc/netlink-ddns/config.toml`, but you can specify a different location using the `NLDDNS_CONFIG` environment variable.
+The service is configured using a [Corn](https://cornlang.dev/) config file. By
+default, it looks for the configuration at `/etc/netlink-ddns/config.corn`.
 
 Example configuration:
 
-```toml
-# Optional log level (default: INFO)
-log_level = "info"
-
-# Gandi API key (either gandi_api_key OR gandi_pat_key is required)
-gandi_api_key = "your-api-key-here"
-
-# OR Gandi Personal Access Token (alternative to API key)
-# gandi_pat_key = "your-pat-key-here"
-
-# Domain name to update
-domain = "example.com"
-
-# Host name to update (e.g., "www" for www.example.com)
-host = "home"
-
-# Network interface to monitor
-iface = "eth0"
-
-# Optional dry-run mode (default: false)
-# dry_run = true
 ```
+let {
+  // These can also be environment variables
+  $porkbun_key = "a_key"
+  $porkbun_secret = "a_secret"
 
-### Configuration Options
+}  in {
 
-- `log_level`: Optional logging level (trace, debug, info, warn, error)
-- `gandi_api_key`: Your Gandi API key (required unless using PAT)
-- `gandi_pat_key`: Your Gandi Personal Access Token (alternative to API key)
-- `domain`: The domain name to update
-- `host`: The host/subdomain to update
-- `iface`: The network interface to monitor for IP changes
-- `dry_run`: If true, logs what would be done without actually updating DNS
+  log_level = "debug"
+  iface = "test0"
+
+  ddns = {
+    provider = {
+      name = "porkbun"
+      key = $porkbun_key
+      secret = $porkbun_secret
+    }
+
+    domain = "example.com"
+    host = "test"
+  }
+}
+```
 
 ## Usage
 
@@ -116,7 +104,7 @@ iface = "eth0"
 netlink-ddns
 
 # With custom configuration path
-NLDDNS_CONFIG=/path/to/your/config.toml netlink-ddns
+NLDDNS_CONFIG=/path/to/your/config.corn netlink-ddns
 ```
 
 ### Running as a Service
@@ -139,7 +127,7 @@ sudo journalctl -u netlink-ddns -f
 
 - Linux system with netlink support
 - Network interface with dynamic IP address
-- Gandi account with API access
+- A DNS account with API access
 - systemd (for service integration)
 
 ## License
