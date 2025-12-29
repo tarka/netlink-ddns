@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4](https://github.com/tarka/netlink-ddns/compare/v0.1.3...v0.1.4) - 2025-12-29
+
+### Other
+
+- Use personal token to allow workflow chaining
+
 ## [0.1.3](https://github.com/tarka/netlink-ddns/compare/v0.1.2...v0.1.3) - 2025-12-29
 
 ### Other
