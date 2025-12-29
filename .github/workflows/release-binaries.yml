@@ -48,7 +48,7 @@ jobs:
       - name: Create additional release structure
         run: |
           mkdir -p etc/systemd/system etc/netlink-ddns
-          cp systemd/netlink-ddns etc/systemd/system/
+          cp systemd/netlink-ddns.service etc/systemd/system/
           cp examples/config.corn etc/netlink-ddns/
           echo '# This file is added to the environment by the systemd unit' > etc/netlink-ddns/secrets
           chmod o-rwx etc/netlink-ddns/secrets
