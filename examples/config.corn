@@ -1,8 +1,8 @@
 
 let {
   // These can also be environment variables
-  $porkbun_key = "a_key"
-  $porkbun_secret = "a_secret"
+  $env_PORKBUN_KEY = "a_key"
+  $env_PORKBUN_SECRET = "a_secret"
 
 }  in {
 
@@ -12,8 +12,8 @@ let {
   ddns = {
     provider = {
       name = "porkbun"
-      key = $porkbun_key
-      secret = $porkbun_secret
+      key = $env_PORKBUN_KEY
+      secret = $env_PORKBUN_SECRET
     }
 
     domain = "example.com"

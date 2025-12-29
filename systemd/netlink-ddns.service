@@ -10,7 +10,9 @@ Restart=on-abnormal
 User=www-data
 Group=www-data
 
-ExecStart=/home/ssmith/.cargo/bin/netlink-ddns
+EnvironmentFile=-/etc/netlink-ddns/secrets
+
+ExecStart=/opt/netlink-ddns/bin/netlink-ddns
 
 ; Use graceful shutdown with a reasonable timeout
 KillMode=mixed
