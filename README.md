@@ -18,6 +18,12 @@ upstream provider, but more can be added.
 
 ## Installation
 
+### Release Binaries
+
+Tarballs are available on the [Github release page](https://github.com/tarka/netlink-ddns/releases). 
+These contain binaries, documentation, example configuration files, and an example
+systemd configuration.
+
 ### Install from crates.io
 
 ```bash
@@ -38,37 +44,6 @@ cargo install --path .
 
 # The binary will be in ~/.cargo/bin/
 ```
-
-### Installing as a System Service
-
-1. Copy the binary to a system location:
-   ```bash
-   sudo cp target/release/netlink-ddns /usr/local/bin/
-   ```
-
-2. Create the configuration directory and file:
-   ```bash
-   sudo mkdir -p /etc/netlink-ddns
-   sudo cp examples/config.corn /etc/netlink-ddns/config.corn
-   sudo chown www-data:www-data /etc/netlink-ddns/config.corn
-   ```
-
-3. Edit the configuration file:
-   ```bash
-   sudo nano /etc/netlink-ddns/config.corn
-   ```
-
-4. Install the systemd service:
-   ```bash
-   sudo cp systemd/netlink-ddns.service /etc/systemd/system/
-   sudo systemctl daemon-reload
-   ```
-
-5. Start and enable the service:
-   ```bash
-   sudo systemctl start netlink-ddns
-   sudo systemctl enable netlink-ddns
-   ```
 
 ## Configuration
 
