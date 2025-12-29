@@ -28,6 +28,7 @@ systemd configuration.
 
 ```bash
 cargo install netlink-ddns
+# The binary will be in ~/.cargo/bin/
 ```
 
 ### Building from Source
