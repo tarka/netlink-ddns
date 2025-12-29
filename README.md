@@ -18,6 +18,12 @@ upstream provider, but more can be added.
 
 ## Installation
 
+### Install from crates.io
+
+```bash
+cargo install netlink-ddns
+```
+
 ### Building from Source
 
 You'll need Rust installed to build the project:
