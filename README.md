@@ -36,13 +36,13 @@ You'll need Rust installed to build the project:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/netlink-ddns.git
+git clone https://github.com/tarka/netlink-ddns.git
 cd netlink-ddns
 
 # Build & install the project
-cargo install --path .
+cargo build --release
 
-# The binary will be in ~/.cargo/bin/
+# The binary will be in target/release/netlink-ddns
 ```
 
 ## Configuration
@@ -54,9 +54,10 @@ Example configuration:
 
 ```
 let {
-  // These can also be environment variables
-  $porkbun_key = "a_key"
-  $porkbun_secret = "a_secret"
+  // Secrets can be stored in environment variables. The systemd service can set these
+  // from a secrets file.
+  $env_PORKBUN_KEY = "a_key"
+  $env_PORKBUN_SECRET = "a_secret"
 
 }  in {
 
@@ -64,45 +65,23 @@ let {
   iface = "test0"
 
   ddns = {
-    provider = {
-      name = "porkbun"
-      key = $porkbun_key
-      secret = $porkbun_secret
-    }
-
     domain = "example.com"
     host = "test"
+    provider = {
+      name = "porkbun"
+      key = $env_PORKBUN_KEY
+      secret = $env_PORKBUN_SECRET
+    }
   }
 }
 ```
 
 ## Usage
 
-### Running Manually
-
-```bash
-# With default configuration path
-netlink-ddns
-
-# With custom configuration path
-NLDDNS_CONFIG=/path/to/your/config.corn netlink-ddns
-```
-
 ### Running as a Service
 
-```bash
-# Start the service
-sudo systemctl start netlink-ddns
-
-# Stop the service
-sudo systemctl stop netlink-ddns
-
-# Check service status
-sudo systemctl status netlink-ddns
-
-# View service logs
-sudo journalctl -u netlink-ddns -f
-```
+The file `systemd/netlink-ddns.service` contains an example systemd
+configuration. This is also available in the release tarballs. 
 
 ## Requirements
 
