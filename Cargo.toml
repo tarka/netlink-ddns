@@ -1,6 +1,6 @@
 [package]
 name = "netlink-ddns"
-version = "0.1.7"
+version = "0.1.8"
 description = "A minimal DDNS server that publishes IP changes to DNS."
 license = "GPL-3.0-only"
 repository = "https://github.com/tarka/netlink-ddns"
