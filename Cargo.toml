@@ -28,3 +28,6 @@ smol-macros = "0.1.1"
 temp-env = { version = "0.3.6", features = ["async_closure"] }
 test-log = "0.2.19"
 tracing-test = "0.2.5"
+
+[package.metadata.binstall]
+bin-dir = "{ name }-v{ version }-{ target }/bin/{ bin }{ binary-ext }"
