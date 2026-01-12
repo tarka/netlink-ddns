@@ -174,11 +174,10 @@ mod tests {
 
         assert_eq!(conf.ddns.host, "test".to_string());
         assert_eq!(conf.ddns.domain, "example.com".to_string());
-        if let Provider::PorkBun(auth) = &conf.ddns.provider {
+        if let Provider::DigitalOcean(auth) = &conf.ddns.provider {
             assert_eq!(auth.key, "a_key".to_string());
-            assert_eq!(auth.secret, "a_secret".to_string());
         } else {
-            panic!("Provider mismatch, should be PorkBun");
+            panic!("Provider mismatch");
         }
 
         Ok(())

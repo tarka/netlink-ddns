@@ -53,7 +53,7 @@ fn main() -> Result<()> {
 
     let ddns = get_dns_provider(&config);
 
-    smol::block_on(async {
+    compio::runtime::Runtime::new()?.block_on(async {
         info!("Waiting for {} to come up...", config.iface);
 
         let local = loop {
@@ -63,7 +63,7 @@ fn main() -> Result<()> {
                 break ip;
             }
             warn!("Error getting IP: {attempt:?}; sleeping");
-            smol::Timer::after(Duration::from_secs(10)).await;
+            compio::runtime::time::sleep(Duration::from_secs(10)).await;
         };
 
         info!("Fetching published DNS record");

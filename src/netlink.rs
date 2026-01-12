@@ -84,7 +84,7 @@ pub(crate) async fn get_if_addr(ifname: &str) -> Result<Option<Ipv4Addr>> {
     let (connection, handle, _msgs) =
         new_connection_with_socket::<SmolSocket>()?;
 
-    smol::spawn(connection)
+    compio::runtime::spawn(connection)
         .detach();
 
     let link = handle
@@ -92,8 +92,7 @@ pub(crate) async fn get_if_addr(ifname: &str) -> Result<Option<Ipv4Addr>> {
         .get()
         .match_name(ifname.to_string())
         .execute()
-        .try_next()
-        .await?
+        .try_next().await?
         .context("Failed to find interface {ifname}")?;
 
     // Fetch link addresses
@@ -118,8 +117,7 @@ pub(crate) async fn get_if_addr(ifname: &str) -> Result<Option<Ipv4Addr>> {
             )
         })
         .try_flatten()
-        .try_collect::<Vec<AddressAttribute>>()
-        .await?
+        .try_collect::<Vec<AddressAttribute>>().await?
         // Extract relevant addresses
         .into_iter()
         .flat_map(|a| {
@@ -180,10 +178,10 @@ pub async fn ipv4_addr_stream(ifname: &'static str) -> Result<UnboundedReceiver<
         .socket_mut()
         .bind(&addr)?;
 
-    smol::spawn(connection)
+    compio::runtime::spawn(connection)
         .detach();
 
-     smol::spawn(async move {
+    compio::runtime::spawn(async move {
         while let Some((message, _)) = nlmsgs.next().await {
             match message.payload {
                 NetlinkPayload::InnerMessage(msg) => {
@@ -271,19 +269,16 @@ fn filter_msg(ifname: &str, msg: RouteNetlinkMessage) -> Option<IpAddrChange> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use macro_rules_attribute::apply;
-    use smol::fs::read_to_string;
-    use smol_macros::test;
+    use async_fs::read_to_string;
     use tracing_test::traced_test;
     use rtnetlink::packet_route::address::{AddressAttribute, AddressMessage};
     use std::net::{IpAddr, Ipv4Addr};
 
-    #[apply(test!)]
+    #[compio::test]
     #[traced_test]
     async fn test_fetch_addrs() -> Result<()> {
         // Hack: parse an interface address out of kernel routes
-        let ifname = read_to_string("/proc/net/route")
-            .await?
+        let ifname = read_to_string("/proc/net/route").await?
             .lines()
             .skip(1) // header
             .take(1)
