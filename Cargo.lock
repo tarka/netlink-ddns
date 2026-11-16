@@ -866,7 +866,7 @@ checksum = "21909324aa58f5c284d91cac514c6d081210901dc372d7c8ea6a9d7e0406097a"
 
 [[package]]
 name = "netlink-ddns"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "anyhow",
  "async-fs",
