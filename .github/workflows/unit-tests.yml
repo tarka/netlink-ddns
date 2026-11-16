@@ -12,16 +12,3 @@ jobs:
 
       - name: Run tests
         run: cargo test --workspace
-
-  msrv-check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-
-      - name: Install MSRV checker
-        run: cargo install cargo-msrv
-
-      - name: Check MSRV
-        run: cargo msrv verify

@@ -5,7 +5,6 @@ description = "A minimal DDNS server that publishes IP changes to DNS."
 license = "GPL-3.0-only"
 repository = "https://github.com/tarka/netlink-ddns"
 edition = "2024"
-rust-version = "1.88.0"
 
 [dependencies]
 anyhow = "1.0.104"
